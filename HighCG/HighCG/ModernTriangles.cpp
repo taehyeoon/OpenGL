@@ -1,6 +1,6 @@
 ﻿#include "MyOpenglHeader.h"
 
-int legacyTriangles() {
+int modernTriangles() {
 	GLFWwindow* window;
 
 	if (!glfwInit())
@@ -25,18 +25,33 @@ int legacyTriangles() {
 	// GL_Version 값 : 4.6.0 - Build 31.0.101.4502
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
+
+	float position[6] = {
+		-0.5f, -0.5f,
+		0.0f, 0.5f,
+		0.5f, -0.5f
+	};
+
+	unsigned int bufferID;
+	glGenBuffers(1, &bufferID);
+	glBindBuffer(GL_ARRAY_BUFFER, bufferID); // <-- bind 는 activate 역할
+	glBufferData(GL_ARRAY_BUFFER, // 실제 data를 CPU -> GPU 로 넘기는 과정
+		6 * sizeof(float),
+		position,
+		GL_STATIC_DRAW);
+
+
 	// glfw창을 사용자가 닫기 직전까지 반복
 	while (!glfwWindowShouldClose(window)) {
 
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		// Legacy code
-		glBegin(GL_TRIANGLES);
-		glVertex2f(-0.5f, -0.5f);
-		glVertex2f(0.0f, 0.5f);
-		glVertex2f(0.5f, -0.5f);
-		glEnd();
+		// Modern code
+		glDrawArrays(GL_TRIANGLES, 0, 3); // Draw call
 
+		// 지금 상태의 코드라면 삼각형이 안보이는 것이 정상
+		// 이유는 shader를 작성하지 않았기 때문에 점이 찍히더라도 삼각형 면이 보이지 않게됨
+		
 		// 앞 뒤 버퍼를 switch
 		glfwSwapBuffers(window);
 
