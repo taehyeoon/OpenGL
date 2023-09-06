@@ -83,11 +83,8 @@ int modernTriangles() {
 
 		// Modern code
 		//glDrawArrays(GL_TRIANGLES, 0, 3); // Draw call
-		glDrawElements(GL_TRIANGLES,
-						6,
-						GL_UNSIGNED_INT,
-						nullptr);
-
+		// GLCall :gl 관련 함수를 실행할 때, 오류가 발생하는 경우, 오류메시지를 출력해준다
+		GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
 
 		// 앞 뒤 버퍼를 switch
 		glfwSwapBuffers(window);
