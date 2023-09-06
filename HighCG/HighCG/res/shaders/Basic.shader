@@ -1,7 +1,7 @@
 #shader vertex
 #version 330 core
 
-layout(location = 0) in vec4 position; //여기 있는 location = 0가, 118, 119 line의 0을 의미함
+layout(location = 0) in vec4 position;
 
 void main()
 {
@@ -11,7 +11,7 @@ void main()
 #shader fragment
 #version 330 core
 
-layout(location = 0) out vec4 color; //출력 color
+layout(location = 0) out vec4 color;
 
 uniform vec4 u_Color;
 
