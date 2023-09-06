@@ -84,6 +84,7 @@
     <ClCompile Include="LegacyTriangles.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ModernTriangles.cpp" />
+    <ClCompile Include="Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MyOpenglHeader.h" />
