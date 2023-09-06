@@ -89,6 +89,9 @@
   <ItemGroup>
     <ClInclude Include="MyOpenglHeader.h" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="res\shaders\Basic.shader" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

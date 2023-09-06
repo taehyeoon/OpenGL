@@ -33,4 +33,7 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="res\shaders\Basic.shader" />
+  </ItemGroup>
 </Project>

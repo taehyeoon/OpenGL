@@ -1,14 +1,46 @@
 ﻿#include "MyOpenglHeader.h"
 
+// 셰이더 파일 파싱 함수
+ShaderProgramSource parseShader(const std::string & filepath)
+{
+    std::ifstream stream(filepath);
+
+    enum class ShaderType
+    {
+        NONE = -1, VERTEX = 0, FRAGMENT = 1
+    };
+
+    std::string line;
+    std::stringstream ss[2];
+    ShaderType type = ShaderType::NONE;
+    while (getline(stream, line))
+    {
+        if (line.find("#shader") != std::string::npos)
+        {
+            if (line.find("vertex") != std::string::npos) //vertex 셰이더 섹션
+            {
+                type = ShaderType::VERTEX;
+            }
+            else if (line.find("fragment") != std::string::npos) //fragment 셰이더 섹션
+            {
+                type = ShaderType::FRAGMENT;
+            }
+        }
+        else
+        {
+            ss[(int)type] << line << '\n'; //코드를 stringstream에 삽입
+        }
+    }
+
+    return { ss[0].str(), ss[1].str() };
+}
+
 //--------Shader 컴파일 함수----------//
 unsigned int compileShader(unsigned int type, const std::string& source)
 {
     unsigned int id = glCreateShader(type); //셰이더 객체 생성(마찬가지)
     const char* src = source.c_str();
-    glShaderSource(id, // 셰이더의 소스 코드 명시, 소스 코드를 명시할 셰이더 객체 id
-        1, // 몇 개의 소스 코드를 명시할 것인지
-        &src, // 실제 소스 코드가 들어있는 문자열의 주소값
-        nullptr); // 해당 문자열 전체를 사용할 경우 nullptr입력, 아니라면 길이 명시
+    glShaderSource(id, 1, &src, nullptr); // 셰이더의 소스 코드 명시
     glCompileShader(id); // id에 해당하는 셰이더 컴파일
 
     // Error Handling(없으면 셰이더 프로그래밍할때 괴롭다...)
