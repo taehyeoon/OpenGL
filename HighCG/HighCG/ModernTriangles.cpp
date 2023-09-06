@@ -26,19 +26,35 @@ int modernTriangles() {
 	// GL_Version 값 : 4.6.0 - Build 31.0.101.4502
 	std::cout << glGetString(GL_VERSION) << std::endl;
 
+	glEnable(GL_CULL_FACE); // 삼각형의 뒷면은 rendering하지 않도록 설정
 
-	float position[6] = {
-		-0.5f, -0.5f,
-		0.0f, 0.5f,
-		0.5f, -0.5f
+	float position[] = {
+		-0.5f, -0.5f, // 0
+		 0.5f, -0.5f, // 1
+		 0.5f,  0.5f, // 2
+		-0.5f,  0.5f // 3
 	};
+
+	unsigned int indices[] = {
+		0, 1, 2, // t1
+		2, 3, 0  // t2
+	};
+
 
 	unsigned int bufferID;
 	glGenBuffers(1, &bufferID);
 	glBindBuffer(GL_ARRAY_BUFFER, bufferID); // <-- bind 는 activate 역할
 	glBufferData(GL_ARRAY_BUFFER, // 실제 data를 CPU -> GPU 로 넘기는 과정
-				6 * sizeof(float),
+				8 * sizeof(float),
 				position,
+				GL_STATIC_DRAW); // 그려야될 데이터들이 런타임에 거의 변하지 않을 것이라는 정보
+
+	unsigned int ibo; // index buffer object
+	glGenBuffers(1, &ibo);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+				6 * sizeof(unsigned int),
+				indices,
 				GL_STATIC_DRAW);
 
 	// 데이터를 해석하는 방법
@@ -58,7 +74,7 @@ int modernTriangles() {
 	unsigned int shaderID = createShader(source.VertexSource, source.FragSource);
 	glUseProgram(shaderID); //BindBuffer와 마찬가지로, 현재 셰이더 프로그램을 "작업 상태"로 놓음
 	//draw call은 작업 상태인 셰이더 프로그램을 사용하여 작업 상태인 버퍼 데이터를 그림
-	
+	//glUseProgram(0); 쉐이더를 초기화 하는 코드 -> 다시 힌색으로 출력됨
 
 	// glfw창을 사용자가 닫기 직전까지 반복
 	while (!glfwWindowShouldClose(window)) {
@@ -66,7 +82,12 @@ int modernTriangles() {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		// Modern code
-		glDrawArrays(GL_TRIANGLES, 0, 3); // Draw call
+		//glDrawArrays(GL_TRIANGLES, 0, 3); // Draw call
+		glDrawElements(GL_TRIANGLES,
+						6,
+						GL_UNSIGNED_INT,
+						nullptr);
+
 
 		// 앞 뒤 버퍼를 switch
 		glfwSwapBuffers(window);
