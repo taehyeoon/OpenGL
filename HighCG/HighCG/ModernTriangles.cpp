@@ -40,7 +40,13 @@ int modernTriangles() {
 		2, 3, 0  // t2
 	};
 
+	// vao를 먼저 binding한 이후에 bufferID와 ibo를 바인딩하면,
+	// 자동으로 두개의 buffer가 vao에 저장됨
+	unsigned int vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
 
+	
 	unsigned int bufferID;
 	glGenBuffers(1, &bufferID);
 	glBindBuffer(GL_ARRAY_BUFFER, bufferID); // <-- bind 는 activate 역할
@@ -81,10 +87,22 @@ int modernTriangles() {
 	ASSERT(location != -1);
 	GLCall(glUniform4f(location, 0.2f, 0.7f, 0.4f, 1.0f)); // u_Color에 값을 넣겠다 (r, g, b, a)값
 
+
+	// 모든 gl관련 데이터를 unbind시킴
+	// 이제는 그리기 직전에 vao, shader만 다시 bind시키면 됨
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glUseProgram(0);
+
+
 	// glfw창을 사용자가 닫기 직전까지 반복
 	while (!glfwWindowShouldClose(window)) {
 
 		glClear(GL_COLOR_BUFFER_BIT);
+
+		glBindVertexArray(vao);
+		glUseProgram(shaderID);
 
 		// Modern code
 		//glDrawArrays(GL_TRIANGLES, 0, 3); // Draw call
