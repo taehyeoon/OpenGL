@@ -76,6 +76,11 @@ int modernTriangles() {
 	//draw call은 작업 상태인 셰이더 프로그램을 사용하여 작업 상태인 버퍼 데이터를 그림
 	//glUseProgram(0); 쉐이더를 초기화 하는 코드 -> 다시 힌색으로 출력됨
 
+	// Shader Uniform 전역변수 값 전달
+	GLCall(int location = glGetUniformLocation(shaderID, "u_Color"));
+	ASSERT(location != -1);
+	GLCall(glUniform4f(location, 0.2f, 0.7f, 0.4f, 1.0f)); // u_Color에 값을 넣겠다 (r, g, b, a)값
+
 	// glfw창을 사용자가 닫기 직전까지 반복
 	while (!glfwWindowShouldClose(window)) {
 

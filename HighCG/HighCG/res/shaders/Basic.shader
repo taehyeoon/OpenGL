@@ -5,7 +5,7 @@ layout(location = 0) in vec4 position; //여기 있는 location = 0가, 118, 119
 
 void main()
 {
-	gl_Position = position; //119에서 보다시피, 2개의 값만 전달했지만, 알아서 vec4로 변환해줌
+	gl_Position = position; // gl_Position에 넣어야 할 정보 : clip space coordinate
 }
 
 #shader fragment
@@ -13,7 +13,9 @@ void main()
 
 layout(location = 0) out vec4 color; //출력 color
 
+uniform vec4 u_Color;
+
 void main()
 {
-	color = vec4(0.0, 0.0 ,1.0, 1.0); //파란색 반환
+	color = u_Color;
 }
