@@ -129,15 +129,26 @@ int main(void) {
 
 
 		float positions[] = {
-			-0.5f, -0.5f, // 0
-			 0.5f, -0.5f, // 1
-			 0.5f,  0.5f, // 2
-			-0.5f,  0.5f // 3
+			-0.4f, 1.0f,
+			-1.0f, 0.0f,
+			0.0f, -0.4f,
+			-1.0f, -0.4f,
+			-0.7f, -1.0f,
+			-0.4f, -0.4f, // 5
+			0.0f, -0.7f,
+			0.4f, -1.0f,
+			1.0f, 0.0f,
+			0.0f, 0.4f,
+			1.0f, 0.4f,
+			1.0f, 0.7f // 11
+
 		};
 
 		unsigned int indices[] = {
 			0, 1, 2, // t1
-			2, 3, 0  // t2
+			3, 4, 5,  // t2
+			6, 7, 8, // t1
+			9, 10, 11  // t2
 		};
 
 		// vao를 먼저 binding한 이후에 bufferID와 ibo를 바인딩하면,
@@ -147,7 +158,7 @@ int main(void) {
 		glBindVertexArray(vao);
 
 		// 데이터를 전달하는 과정
-		VertexBuffer vb{ positions, 4 * 2 * sizeof(float) };
+		VertexBuffer vb{ positions, 12 * 2 * sizeof(float) };
 
 		// 데이터를 해석하는 방법
 		glEnableVertexAttribArray(0); // shader 관련, 0번 location에 저장할거다라는 의미
@@ -159,7 +170,7 @@ int main(void) {
 			0); // 0번째 데이터부터 읽기 시작한다
 
 		// Index Buffer
-		IndexBuffer ib{ indices, 6 };
+		IndexBuffer ib{ indices, 12 };
 
 
 		//---------Shader 생성---------------//
@@ -196,7 +207,7 @@ int main(void) {
 			// Modern code
 			//glDrawArrays(GL_TRIANGLES, 0, 3); // Draw call
 			// GLCall :gl 관련 함수를 실행할 때, 오류가 발생하는 경우, 오류메시지를 출력해준다
-			GLCall(glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr));
+			GLCall(glDrawElements(GL_TRIANGLES, 24, GL_UNSIGNED_INT, nullptr));
 
 			// 앞 뒤 버퍼를 switch
 			glfwSwapBuffers(window);
