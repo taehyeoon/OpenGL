@@ -1,20 +1,21 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
 #include <iostream>
 #include <fstream>
 #include <vector>
-
-//#include <GL/glew.h>
-//#include <GL/glut.h>
+#include <list>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <GL/glut.h>
 
-
 using namespace std;
+list<float> verticesList;
+float* staticList;
+int mouseClicked;
+int screenWidth = 480;
+int screenHeight = 480;
 
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 {
@@ -99,8 +100,8 @@ void renderScene(void)
 	//Clear all pixels
 	glClear(GL_COLOR_BUFFER_BIT);
 	//Let's draw something here
-	
-	glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, nullptr);
+
+	glDrawElements(GL_TRIANGLES, verticesList.size(), GL_UNSIGNED_INT, nullptr);
 	//define the size of point and draw a point.
 	//glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -124,6 +125,51 @@ void init()
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 }
 
+void dynamic2staticList() {
+	// 리스트의 크기를 알아야 합니다.
+	size_t size = verticesList.size();
+
+	if (staticList != nullptr)
+		delete[] staticList;
+
+	// 동적으로 할당된 배열을 생성합니다.
+	float* resultArray = new float[size];
+
+	// 리스트의 요소를 배열에 복사합니다.
+	size_t index = 0;
+	for (const float& value : verticesList) {
+		resultArray[index] = value;
+		++index;
+	}
+
+	staticList = resultArray;
+}
+
+pair<float, float> nomalizedPosByLeftTop(int x, int y) {
+	pair<float, float> result;
+	result.first = (2.0f * x / screenWidth) - 1;
+	result.second = 1 - (2.0f * y / screenHeight);
+
+	return result;
+}
+
+void mousePressed(int btn, int state, int x, int y) {
+	if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
+		mouseClicked = true;
+		cout << x << " , " << y << endl;
+		pair<float, float> normalPos = nomalizedPosByLeftTop(x, y);
+		cout << normalPos.first << " , " << normalPos.second << "\n" << endl;
+
+		verticesList.push_back(normalPos.first);
+		verticesList.push_back(normalPos.second);
+
+		dynamic2staticList();
+	}
+	else {
+		mouseClicked = false;
+	}
+}
+
 
 int main(int argc, char **argv)
 {
@@ -134,7 +180,7 @@ int main(int argc, char **argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 	//These two functions are used to define the position and size of the window. 
 	glutInitWindowPosition(200, 200);
-	glutInitWindowSize(480, 480);
+	glutInitWindowSize(screenWidth, screenHeight);
 	//This is used to define the name of the window.
 	glutCreateWindow("Simple OpenGL Window");
 
@@ -142,20 +188,23 @@ int main(int argc, char **argv)
 	init();
 
 	float positions[] = {
-	-0.4f,  1.0f, // 0
-	-1.0f,  0.0f, // 1
-	 0.0f, -0.4f, // 2
-	-1.0f, -0.4f, // 3
-	-0.7f, -1.0f, // 4
-	-0.4f, -0.4f, // 5
-	 0.0f, -0.7f, // 6
-	 0.4f, -1.0f, // 7
-	 1.0f,  0.0f, // 8
-	 0.0f,  0.4f, // 9
-	 1.0f,  0.4f, // 10
-	 1.0f,  0.7f  // 11
+		-0.4f,  1.0f, // 0
+		-1.0f,  0.0f, // 1
+		0.0f, -0.4f, // 2
+		-1.0f, -0.4f, // 3
+		-0.7f, -1.0f, // 4
+		-0.4f, -0.4f, // 5
+		0.0f, -0.7f, // 6
+		0.4f, -1.0f, // 7
+		1.0f,  0.0f, // 8
+		0.0f,  0.4f, // 9
+		1.0f,  0.4f, // 10
+		1.0f,  0.7f  // 11
 	};
 
+	for (float val : positions) {
+		verticesList.push_back(val);
+	}
 
 	unsigned int indices[] = {
 		0, 1, 2, // t1
@@ -164,7 +213,7 @@ int main(int argc, char **argv)
 		9, 10, 11  // t4
 	};
 
-
+	glutMouseFunc(mousePressed);
 
 	//1.
 	//Generate VAO
@@ -172,27 +221,33 @@ int main(int argc, char **argv)
 	glGenVertexArrays(1, &VertexArrayID);
 	glBindVertexArray(VertexArrayID);
 
+
+	dynamic2staticList();
 	GLuint bufferID;
 	glGenBuffers(1, &bufferID);
 	glBindBuffer(GL_ARRAY_BUFFER, bufferID); // <-- bind 는 activate 역할
 	glBufferData(GL_ARRAY_BUFFER, // 실제 data를 CPU -> GPU 로 넘기는 과정
-				12 * 2 * sizeof(float),
-				positions,
+				verticesList.size() * 2 * sizeof(float),
+				staticList,
 				GL_STATIC_DRAW);
 	
 	glEnableVertexAttribArray(0); // shader 관련, 0번 location에 저장할거다라는 의미
 	glVertexAttribPointer(0, // 0번 location에 있는 데이터들을 읽기 시작할거다라는 의미
 						2, // 하나의 vertex에 몇개의 데이터를 넘기는지, 여기서는 x,y이므로 2개
 						GL_FLOAT, // 입력해주는 데이터 타입
-						GL_FALSE, // 나중에 다시 설명
+						GL_FALSE,
 						sizeof(float) * 2, // 값을 하나 읽을 때마다, 몇 바이트 뒤의 데이터를 읽을 지
 						0); // 0번째 데이터부터 읽기 시작한다
 
 	GLuint vboID;
 	glGenBuffers(1, &vboID);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboID);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, 12 * sizeof(GLuint), indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, verticesList.size() * sizeof(GLuint), indices, GL_STATIC_DRAW);
 	
+
+	
+
+
 	
 
 	//3. 
