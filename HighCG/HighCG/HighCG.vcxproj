@@ -81,18 +81,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="IndexBuffer.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="Renderer.cpp" />
-    <ClCompile Include="VertexBuffer.cpp" />
+    <ClCompile Include="Sample_main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="IndexBuffer.h" />
-    <ClInclude Include="Renderer.h" />
-    <ClInclude Include="VertexBuffer.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="res\shaders\Basic.shader" />
+    <Text Include="FragmentShader.txt" />
+    <Text Include="VertexShader.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

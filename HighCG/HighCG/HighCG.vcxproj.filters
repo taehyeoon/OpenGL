@@ -15,31 +15,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="VertexBuffer.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="IndexBuffer.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="Renderer.cpp">
+    <ClCompile Include="Sample_main.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="VertexBuffer.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="IndexBuffer.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="Renderer.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="res\shaders\Basic.shader" />
+    <Text Include="FragmentShader.txt" />
+    <Text Include="VertexShader.txt" />
   </ItemGroup>
 </Project>
