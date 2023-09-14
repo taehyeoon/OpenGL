@@ -5,6 +5,7 @@
 #include <fstream>
 #include <vector>
 #include <list>
+#include <cmath>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -17,6 +18,10 @@ int screenHeight = 480;
 
 float positions[100];
 int VertexNum = 0;
+
+int clickCount = 0;
+float radius;
+const double PI = 3.1415926;
 
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 {
@@ -101,14 +106,35 @@ void renderScene(void)
 	glClear(GL_COLOR_BUFFER_BIT);
 	//Let's draw something here
 
-	GLuint VBO;
-	glGenVertexArrays(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-	glEnableVertexAttribArray(0);
+	if (VertexNum == 2) {
+		cout << "Draw quater circle" << endl;
 
-	glDrawArrays(GL_LINE_STRIP, 0, VertexNum);
+		float targetVertices[22];
+
+		for (int i = 0; i < 11; i++) {
+			targetVertices[i*2] = radius * cos(9*i * PI / 180) + positions[0]; // x
+			targetVertices[i*2+1] = radius * sin(9*i * PI / 180) + positions[1]; // y
+		}
+		GLuint VBO;
+		glGenVertexArrays(1, &VBO);
+		glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(targetVertices), targetVertices, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+		glEnableVertexAttribArray(0);
+
+		glDrawArrays(GL_LINE_STRIP, 0, 11);
+	}
+	//else {
+	//	GLuint VBO;
+	//	glGenVertexArrays(1, &VBO);
+	//	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	//	glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
+	//	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	//	glEnableVertexAttribArray(0);
+
+	//	glDrawArrays(GL_LINE_STRIP, 0, VertexNum);
+	//}
+
 	//define the size of point and draw a point.
 	//glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -141,15 +167,29 @@ pair<float, float> nomalizedPosByLeftTop(int x, int y) {
 }
 
 void mousePressed(int btn, int state, int x, int y) {
+
 	if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
 		mouseClicked = true;
 		cout << x << " , " << y << endl;
 		pair<float, float> normalPos = nomalizedPosByLeftTop(x, y);
 		cout << normalPos.first << " , " << normalPos.second << "\n" << endl;
 
+		if (VertexNum >= 2) return;
+
 		positions[VertexNum*2] = normalPos.first;
 		positions[VertexNum*2+1] = normalPos.second;
 		VertexNum++;
+
+		if (VertexNum == 2) {
+			float x1 = positions[0];
+			float y1 = positions[1];
+			float x2 = positions[2];
+			float y2 = positions[3];
+
+			radius = sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2));
+			cout << "radius : ";
+			cout << radius << endl;
+		}
 	}
 	else {
 		mouseClicked = false;
