@@ -22,6 +22,8 @@ int VertexNum = 0;
 int clickCount = 0;
 float radius;
 const double PI = 3.1415926;
+int Tessellation = 10;
+float theta = 90.0 / Tessellation;
 
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 {
@@ -109,20 +111,22 @@ void renderScene(void)
 	if (VertexNum == 2) {
 		cout << "Draw quater circle" << endl;
 
-		float targetVertices[22];
+		float* targetVertices = new float[(Tessellation + 1) * 2];
 
-		for (int i = 0; i < 11; i++) {
-			targetVertices[i*2] = radius * cos(9*i * PI / 180) + positions[0]; // x
-			targetVertices[i*2+1] = radius * sin(9*i * PI / 180) + positions[1]; // y
+		for (int i = 0; i < Tessellation + 1; i++) {
+			cout << theta * i << endl;
+			targetVertices[i*2] = radius * cos(theta * i * PI / 180.0) + positions[0]; // x
+			targetVertices[i*2+1] = radius * sin(theta *i * PI / 180.0) + positions[1]; // y
 		}
+
 		GLuint VBO;
 		glGenVertexArrays(1, &VBO);
 		glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		glBufferData(GL_ARRAY_BUFFER, sizeof(targetVertices), targetVertices, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLsizeiptr) * 4 * (Tessellation + 1), targetVertices, GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 		glEnableVertexAttribArray(0);
 
-		glDrawArrays(GL_LINE_STRIP, 0, 11);
+		glDrawArrays(GL_LINE_STRIP, 0, Tessellation + 1);
 	}
 	//else {
 	//	GLuint VBO;
