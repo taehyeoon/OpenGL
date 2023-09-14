@@ -25,6 +25,8 @@ const double PI = 3.1415926;
 int Tessellation = 10;
 float theta = 90.0 / Tessellation;
 
+GLuint programID;
+
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 {
 	//create the shaders
@@ -115,8 +117,8 @@ void renderScene(void)
 
 		for (int i = 0; i < Tessellation + 1; i++) {
 			cout << theta * i << endl;
-			targetVertices[i*2] = radius * cos(theta * i * PI / 180.0) + positions[0]; // x
-			targetVertices[i*2+1] = radius * sin(theta *i * PI / 180.0) + positions[1]; // y
+			targetVertices[i*2] = radius * cos(theta * i * PI / 180.0); // x
+			targetVertices[i*2+1] = radius * sin(theta *i * PI / 180.0); // y
 		}
 
 		GLuint VBO;
@@ -193,6 +195,9 @@ void mousePressed(int btn, int state, int x, int y) {
 			radius = sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2));
 			cout << "radius : ";
 			cout << radius << endl;
+
+			GLint centerPosLocation = glGetUniformLocation(programID, "CenterPos");
+			glUniform3f(centerPosLocation, x1, y1, 0);
 		}
 	}
 	else {
@@ -244,7 +249,7 @@ int main(int argc, char **argv)
 	glEnableVertexAttribArray(0);
 
 	//3. 
-	GLuint programID = LoadShaders("VertexShader.txt", "FragmentShader.txt");
+	programID = LoadShaders("VertexShader.txt", "FragmentShader.txt");
 
 	glUseProgram(programID);
 
