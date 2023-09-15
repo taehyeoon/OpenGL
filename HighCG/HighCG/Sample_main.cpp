@@ -13,23 +13,25 @@
 
 using namespace std;
 
-const int SCREEN_WIDTH = 1080;
-const int SCREEN_HEIGHT = 1080;
-const double PI = 3.1415926;
-const int TESSELLATION_DELATA = 10;
-
-int tessellation = 10;
-int vertexNum = 0;
-double radius;
-float positions[100];
-vector<float> drawVertices;
-GLuint programID;
-
 struct Vector2
 {
 	float x = 0;
 	float y = 0;
 };
+
+const int SCREEN_WIDTH = 1080;
+const int SCREEN_HEIGHT = 1080;
+const double PI = 3.1415926;
+const int TESSELLATION_DELATA = 10;
+
+bool inputComplete;
+int tessellation = 10;
+double radius;
+vector<float> drawVertices;
+Vector2 centerPos;
+GLuint programID;
+
+
 
 // Graphic
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path);
@@ -96,7 +98,7 @@ void renderScene(void)
 	//Clear all pixels
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	if (vertexNum == 2) {
+	if (inputComplete) {
 		cout << "Draw quater circle" << endl;
 		cout << drawVertices.size() / 2 << endl;
 		glDrawArrays(GL_LINE_STRIP, 0, drawVertices.size() / 2);
@@ -252,40 +254,36 @@ void mousePressed(int btn, int state, int x, int y) {
 	
 	if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
 
-		if (vertexNum >= 2) return;
+		if (inputComplete) return;
 
 		// Normalize clicked position to range[-1,1]
-		cout << x << " , " << y << endl;
 		Vector2 normalizedPos = nomalizedPosByLeftTop(x, y);
-		cout << normalizedPos.x << " , " << normalizedPos.y << endl;
+		cout << x << " , " << y << " -> " << normalizedPos.x << " , " << normalizedPos.y << endl;;
 
-		// Save clicked position to positions array 
-		positions[vertexNum*2] = normalizedPos.x;
-		positions[vertexNum*2+1] = normalizedPos.y;
-		vertexNum++;
-
-		// if second click
-		if (vertexNum == 2) {
-			Vector2 center = { positions[0], positions[1] };
-			Vector2 secondPoint = { positions[2], positions[3] };
-
-			// Calculate radius
-			radius = sqrt(pow(center.x - secondPoint.x, 2) + pow(center.y - secondPoint.y, 2));
-			cout << "radius : ";
-			cout << radius << endl;
-			
-			// Calculate Other points
-			bindCircleData();
-
-			// Transfer center pos to vertex shader
-			GLint centerPosLocation = glGetUniformLocation(programID, "CenterPos");
-			glUniform3f(centerPosLocation, center.x, center.y, 0);
+		// Save center position
+		if (centerPos.x == 0 && centerPos.y == 0) {
+			centerPos = normalizedPos;
+			return;
 		}
+
+		// Calculate radius
+		radius = sqrt(pow(centerPos.x - normalizedPos.x, 2) + pow(centerPos.y - normalizedPos.y, 2));
+		cout << "radius : ";
+		cout << radius << endl;
+
+		// Calculate Other points
+		bindCircleData();
+
+		// Transfer center pos to vertex shader
+		GLint centerPosLocation = glGetUniformLocation(programID, "CenterPos");
+		glUniform3f(centerPosLocation, centerPos.x, centerPos.y, 0);
+
+		inputComplete = true;
 	}
 
 	if (btn == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
 
-		if (vertexNum != 2) return;
+		if (!inputComplete) return;
 
 		tessellation += TESSELLATION_DELATA;
 		bindCircleData();
