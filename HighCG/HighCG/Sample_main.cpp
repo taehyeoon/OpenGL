@@ -6,6 +6,7 @@
 #include <vector>
 #include <list>
 #include <cmath>
+#include <random>
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
@@ -15,26 +16,29 @@ using namespace std;
 
 struct Vector2
 {
-	float x = 0;
-	float y = 0;
+	float x;
+	float y;
 };
 
-struct Color {
-	float r;
-	float g;
-	float b;
-	float a;
+struct Vector3 {
+	float x;
+	float y;
+	float z;
 };
 
 const int SCREEN_WIDTH = 1080;
 const int SCREEN_HEIGHT = 1080;
 const double PI = 3.1415926;
 const int TESSELLATION_DELATA = 1;
+const int VERTEX_SIZE = 3;
+const int COLOR_SIZE = 4;
+const int ONE_VERTEX_DATA_SIZE = VERTEX_SIZE + COLOR_SIZE;
 
 bool inputComplete;
 int tessellation = 2;
+int verticesNum;
 double radius;
-vector<float> drawVertices;
+vector<float> verticesData;
 Vector2 centerPos;
 GLuint programID;
 
@@ -107,8 +111,8 @@ void renderScene(void)
 
 	if (inputComplete) {
 		cout << "Draw quater circle" << endl;
-		cout << drawVertices.size() / 6 << endl;
-		glDrawArrays(GL_LINE_STRIP, 0, drawVertices.size() / 6);
+		cout << "verticesNum" << verticesNum << endl;
+		glDrawArrays(GL_LINE_LOOP, 0, verticesNum);
 	}
 
 	glutSwapBuffers();
@@ -193,54 +197,61 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 
 void addAllCircleVertices() {
 	
-	int switchingPointLastIdx = (drawVertices.size() / 2) - 2;
-	float x, y;
+	int switchingPointLastIdx = (verticesData.size() / VERTEX_SIZE) - 2;
+	float x, y, z;
 
-	// Add Left quater circle
+	// Add Left quater circle vertices
 	for (int i = switchingPointLastIdx; i >= 0; i--) {
-		x = drawVertices.at(2 * i);
-		y = drawVertices.at(2 * i + 1);
-	
-		drawVertices.push_back(-1 * x);
-		drawVertices.push_back(y);
+		x = verticesData.at(VERTEX_SIZE * i);
+		y = verticesData.at(VERTEX_SIZE * i + 1);
+		z = 0;
+
+		verticesData.push_back(-1 * x);
+		verticesData.push_back(y);
+		verticesData.push_back(0);
 	}
 
-	// Add bottom half circle
-	switchingPointLastIdx = (drawVertices.size() / 2) - 2;
+	// Add bottom half circle vertices
+	switchingPointLastIdx = (verticesData.size() / VERTEX_SIZE) - 2;
 	for (int i = switchingPointLastIdx; i >= 1; i--) {
-		x = drawVertices.at(2 * i);
-		y = drawVertices.at(2 * i + 1);
+		x = verticesData.at(VERTEX_SIZE * i);
+		y = verticesData.at(VERTEX_SIZE * i + 1);
+		z = 0;
 
-		drawVertices.push_back(x);
-		drawVertices.push_back(-1 * y);
+		verticesData.push_back(x);
+		verticesData.push_back(-1 * y);
+		verticesData.push_back(z);
 	}
 
-	drawVertices.push_back(drawVertices.at(0));
-	drawVertices.push_back(drawVertices.at(1));
+	// Only include vertices Data
+	verticesNum = verticesData.size() / VERTEX_SIZE;
 
-	// Color
-	Color lineColor = { 0, 1, 1, 1 };
-	int totalVerticesNum = drawVertices.size() / 2;
+	// Random Color
+	random_device dev;
+	mt19937 rng(dev());
+	uniform_int_distribution<mt19937::result_type> dist1000(1, 1000); // distribution in range [1, 6]
+
+	float r = dist1000(rng) / 1000.0f;
+	float g = dist1000(rng) / 1000.0f;
+	float b = dist1000(rng) / 1000.0f;
+	vector<float> lineColor = { r, g, b, 1 };
 	vector<float>::iterator it;
-	it = drawVertices.begin();
-	it += 2;
-	for (int i = 0; i < totalVerticesNum - 1; i++) {
-		it = drawVertices.insert(it, lineColor.r); it++;
-		it = drawVertices.insert(it, lineColor.g); it++;
-		it = drawVertices.insert(it, lineColor.b); it++;
-		it = drawVertices.insert(it, lineColor.a); it++;
-		it += 2;
-	}
-	it = drawVertices.insert(it, lineColor.r); it++;
-	it = drawVertices.insert(it, lineColor.g); it++;
-	it = drawVertices.insert(it, lineColor.b); it++;
-	it = drawVertices.insert(it, lineColor.a); it++;
+	it = verticesData.begin();
+	it += VERTEX_SIZE;
 
+	// Insert color information between the location information of the point
+	for (int i = 0; i < verticesNum - 1; i++) {
+		it = verticesData.insert(it, lineColor.begin(), lineColor.end());
+		it += ONE_VERTEX_DATA_SIZE;
+	}
+	verticesData.insert(it, lineColor.begin(), lineColor.end());
+
+	// Just for debug
 	int idx = 0;
-	for (it = drawVertices.begin(); it != drawVertices.end(); it++) {
+	for (it = verticesData.begin(); it != verticesData.end(); it++) {
 		cout << *it << ", ";
 		idx += 1;
-		if (idx == 6) {
+		if (idx == ONE_VERTEX_DATA_SIZE) {
 			idx = 0;
 			cout << endl;
 		}
@@ -249,27 +260,36 @@ void addAllCircleVertices() {
 
 void bindCircleData() {
 
-	drawVertices.clear();
+	verticesData.clear();
 	cout << "current Tessllation : " << tessellation << endl;
 
 	for (int i = 0; i < tessellation + 1; i++) {
-		drawVertices.push_back(radius * cos(90.0 / tessellation * i * PI / 180.0));
-		drawVertices.push_back(radius * sin(90.0 / tessellation * i * PI / 180.0));
+		verticesData.push_back(radius * cos(90.0 / tessellation * i * PI / 180.0));
+		verticesData.push_back(radius * sin(90.0 / tessellation * i * PI / 180.0));
+		verticesData.push_back(0);
 	}
 
 	addAllCircleVertices();
 
-	float* targetVertices = new float[drawVertices.size()];
-	for (unsigned int i = 0; i < drawVertices.size(); i++) {
-		targetVertices[i] = drawVertices.at(i);
+	float* targetVertices = new float[verticesData.size()];
+	for (unsigned int i = 0; i < verticesData.size(); i++) {
+		targetVertices[i] = verticesData.at(i);
 	}
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * drawVertices.size(), targetVertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * verticesData.size(), targetVertices, GL_STATIC_DRAW);
+	
+	// Position
+	glVertexAttribPointer(0, VERTEX_SIZE, 
+		GL_FLOAT, GL_FALSE, 
+		ONE_VERTEX_DATA_SIZE * sizeof(float), 
+		(void*)0);
 	glEnableVertexAttribArray(0);
 
-	// color
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(2 * sizeof(float)));
+	// Color
+	glVertexAttribPointer(1, COLOR_SIZE, 
+		GL_FLOAT, GL_FALSE, 
+		ONE_VERTEX_DATA_SIZE * sizeof(float), 
+		(void*)(VERTEX_SIZE * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
 	delete[] targetVertices;
