@@ -19,6 +19,7 @@ const int Tessellation = 30;
 const double PI = 3.1415926;
 
 float positions[100];
+vector<float> drawVertices;
 int VertexNum = 0;
 float radius;
 
@@ -107,6 +108,20 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
     return ProgramID;
 }
 
+void calcVertices() {
+	
+	int switchingPointLastIdx = Tessellation - 1;
+
+	// start idx 1 (except start point)
+	for (int i = switchingPointLastIdx; i >= 0; i--) {
+		float x = drawVertices.at(2 * i);
+		float y = drawVertices.at(2 * i + 1);
+	
+		drawVertices.push_back(-1 * x);
+		drawVertices.push_back(y);
+	}
+}
+
 void renderScene(void)
 {
 	//Clear all pixels
@@ -114,23 +129,31 @@ void renderScene(void)
 
 	if (VertexNum == 2) {
 		cout << "Draw quater circle" << endl;
-		
-		float* targetVertices = new float[(Tessellation + 1) * 2];
 
 		for (int i = 0; i < Tessellation + 1; i++) {
-			targetVertices[i*2] = radius * cos(90.0 / Tessellation * i * PI / 180.0); // x
-			targetVertices[i*2+1] = radius * sin(90.0 / Tessellation *i * PI / 180.0); // y
+			drawVertices.push_back(radius * cos(90.0 / Tessellation * i * PI / 180.0));
+			drawVertices.push_back(radius * sin(90.0 / Tessellation * i * PI / 180.0));
+		}
+		calcVertices();
+		cout << "size" << drawVertices.size() << endl;
+
+		float* targetVertices = new float[drawVertices.size()];
+		for (int i = 0; i < drawVertices.size(); i++) {
+			targetVertices[i] = drawVertices.at(i);
 		}
 
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLsizeiptr) * 4 * (Tessellation + 1), targetVertices, GL_STATIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(GLsizeiptr) * 4 * (drawVertices.size() / 2), targetVertices, GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 		glEnableVertexAttribArray(0);
 
-		glDrawArrays(GL_LINE_STRIP, 0, Tessellation + 1);
+		delete[] targetVertices;
+
+		glDrawArrays(GL_LINE_STRIP, 0, drawVertices.size() / 2);
 	}
 
 	glutSwapBuffers();
 }
+
 
 
 void init()
@@ -146,7 +169,6 @@ void init()
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 }
-
 
 Vector2 nomalizedPosByLeftTop(int x, int y) {
 	Vector2 result;
