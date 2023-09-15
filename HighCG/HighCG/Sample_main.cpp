@@ -12,20 +12,23 @@
 #include <GL/glut.h>
 
 using namespace std;
-int mouseClicked;
-int screenWidth = 480;
-int screenHeight = 480;
+
+const int SCREENWIDTH = 480;
+const int SCREENHEIGHT = 480;
+const int Tessellation = 30;
+const double PI = 3.1415926;
 
 float positions[100];
 int VertexNum = 0;
-
-int clickCount = 0;
 float radius;
-const double PI = 3.1415926;
-int Tessellation = 10;
-float theta = 90.0 / Tessellation;
 
 GLuint programID;
+
+struct Vector2
+{
+	float x;
+	float y;
+};
 
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 {
@@ -108,43 +111,24 @@ void renderScene(void)
 {
 	//Clear all pixels
 	glClear(GL_COLOR_BUFFER_BIT);
-	//Let's draw something here
 
 	if (VertexNum == 2) {
 		cout << "Draw quater circle" << endl;
-
+		
 		float* targetVertices = new float[(Tessellation + 1) * 2];
 
 		for (int i = 0; i < Tessellation + 1; i++) {
-			cout << theta * i << endl;
-			targetVertices[i*2] = radius * cos(theta * i * PI / 180.0); // x
-			targetVertices[i*2+1] = radius * sin(theta *i * PI / 180.0); // y
+			targetVertices[i*2] = radius * cos(90.0 / Tessellation * i * PI / 180.0); // x
+			targetVertices[i*2+1] = radius * sin(90.0 / Tessellation *i * PI / 180.0); // y
 		}
 
-		GLuint VBO;
-		glGenVertexArrays(1, &VBO);
-		glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(GLsizeiptr) * 4 * (Tessellation + 1), targetVertices, GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
 		glEnableVertexAttribArray(0);
 
 		glDrawArrays(GL_LINE_STRIP, 0, Tessellation + 1);
 	}
-	//else {
-	//	GLuint VBO;
-	//	glGenVertexArrays(1, &VBO);
-	//	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	//	glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
-	//	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-	//	glEnableVertexAttribArray(0);
 
-	//	glDrawArrays(GL_LINE_STRIP, 0, VertexNum);
-	//}
-
-	//define the size of point and draw a point.
-	//glDrawArrays(GL_TRIANGLES, 0, 3);
-
-	//Double buffer
 	glutSwapBuffers();
 }
 
@@ -164,44 +148,43 @@ void init()
 }
 
 
-pair<float, float> nomalizedPosByLeftTop(int x, int y) {
-	pair<float, float> result;
-	result.first = (2.0f * x / screenWidth) - 1;
-	result.second = 1 - (2.0f * y / screenHeight);
+Vector2 nomalizedPosByLeftTop(int x, int y) {
+	Vector2 result;
+	result.x = (2.0f * x / SCREENWIDTH) - 1;
+	result.y = 1 - (2.0f * y / SCREENHEIGHT);
 
 	return result;
 }
 
 void mousePressed(int btn, int state, int x, int y) {
+	
+	if (VertexNum >= 2) return;
 
 	if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-		mouseClicked = true;
+		// Normalize clicked position to range[-1,1]
 		cout << x << " , " << y << endl;
-		pair<float, float> normalPos = nomalizedPosByLeftTop(x, y);
-		cout << normalPos.first << " , " << normalPos.second << "\n" << endl;
+		Vector2 normalizedPos = nomalizedPosByLeftTop(x, y);
+		cout << normalizedPos.x << " , " << normalizedPos.y << endl;
 
-		if (VertexNum >= 2) return;
-
-		positions[VertexNum*2] = normalPos.first;
-		positions[VertexNum*2+1] = normalPos.second;
+		// Save clicked position to positions array 
+		positions[VertexNum*2] = normalizedPos.x;
+		positions[VertexNum*2+1] = normalizedPos.y;
 		VertexNum++;
 
+		// if second click
 		if (VertexNum == 2) {
-			float x1 = positions[0];
-			float y1 = positions[1];
-			float x2 = positions[2];
-			float y2 = positions[3];
+			Vector2 center = { positions[0], positions[1] };
+			Vector2 secondPoint = { positions[2], positions[3] };
 
-			radius = sqrt(pow(x1 - x2, 2) + pow(y1 - y2, 2));
+			// Calculate radius
+			radius = sqrt(pow(center.x - secondPoint.x, 2) + pow(center.y - secondPoint.y, 2));
 			cout << "radius : ";
 			cout << radius << endl;
 
+			// Transfer center pos to vertex shader
 			GLint centerPosLocation = glGetUniformLocation(programID, "CenterPos");
-			glUniform3f(centerPosLocation, x1, y1, 0);
+			glUniform3f(centerPosLocation, center.x, center.y, 0);
 		}
-	}
-	else {
-		mouseClicked = false;
 	}
 }
 
@@ -216,39 +199,31 @@ int main(int argc, char **argv)
 	//init GLUT and create Window
 	//initialize the GLUT
 	glutInit(&argc, argv);
+
 	//GLUT_DOUBLE enables double buffering (drawing to a background buffer while the other buffer is displayed)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
+	
 	//These two functions are used to define the position and size of the window. 
 	glutInitWindowPosition(200, 200);
-	glutInitWindowSize(screenWidth, screenHeight);
+	glutInitWindowSize(SCREENWIDTH, SCREENHEIGHT);
+	
 	//This is used to define the name of the window.
 	glutCreateWindow("Simple OpenGL Window");
 
 	//call initization function
 	init();
 
-	//float positions[] = {
-	//	-0.2f, -0.8f,
-	//	0.8f, 0.2f,
-	//};
-
 	glutMouseFunc(mousePressed);
 	glutKeyboardFunc(keyboardPressed);
 
-	//1.
-	//Generate VAO
 	GLuint VAO;
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
-
+	
 	GLuint VBO;
 	glGenVertexArrays(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-	glEnableVertexAttribArray(0);
 
-	//3. 
 	programID = LoadShaders("VertexShader.txt", "FragmentShader.txt");
 
 	glUseProgram(programID);
