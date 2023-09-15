@@ -19,13 +19,20 @@ struct Vector2
 	float y = 0;
 };
 
+struct Color {
+	float r;
+	float g;
+	float b;
+	float a;
+};
+
 const int SCREEN_WIDTH = 1080;
 const int SCREEN_HEIGHT = 1080;
 const double PI = 3.1415926;
-const int TESSELLATION_DELATA = 10;
+const int TESSELLATION_DELATA = 1;
 
 bool inputComplete;
-int tessellation = 10;
+int tessellation = 2;
 double radius;
 vector<float> drawVertices;
 Vector2 centerPos;
@@ -100,8 +107,8 @@ void renderScene(void)
 
 	if (inputComplete) {
 		cout << "Draw quater circle" << endl;
-		cout << drawVertices.size() / 2 << endl;
-		glDrawArrays(GL_LINE_STRIP, 0, drawVertices.size() / 2);
+		cout << drawVertices.size() / 6 << endl;
+		glDrawArrays(GL_LINE_STRIP, 0, drawVertices.size() / 6);
 	}
 
 	glutSwapBuffers();
@@ -210,6 +217,34 @@ void addAllCircleVertices() {
 
 	drawVertices.push_back(drawVertices.at(0));
 	drawVertices.push_back(drawVertices.at(1));
+
+	// Color
+	Color lineColor = { 0, 1, 1, 1 };
+	int totalVerticesNum = drawVertices.size() / 2;
+	vector<float>::iterator it;
+	it = drawVertices.begin();
+	it += 2;
+	for (int i = 0; i < totalVerticesNum - 1; i++) {
+		it = drawVertices.insert(it, lineColor.r); it++;
+		it = drawVertices.insert(it, lineColor.g); it++;
+		it = drawVertices.insert(it, lineColor.b); it++;
+		it = drawVertices.insert(it, lineColor.a); it++;
+		it += 2;
+	}
+	it = drawVertices.insert(it, lineColor.r); it++;
+	it = drawVertices.insert(it, lineColor.g); it++;
+	it = drawVertices.insert(it, lineColor.b); it++;
+	it = drawVertices.insert(it, lineColor.a); it++;
+
+	int idx = 0;
+	for (it = drawVertices.begin(); it != drawVertices.end(); it++) {
+		cout << *it << ", ";
+		idx += 1;
+		if (idx == 6) {
+			idx = 0;
+			cout << endl;
+		}
+	}
 }
 
 void bindCircleData() {
@@ -229,9 +264,13 @@ void bindCircleData() {
 		targetVertices[i] = drawVertices.at(i);
 	}
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(GLsizeiptr) * 4 * (drawVertices.size() / 2), targetVertices, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * drawVertices.size(), targetVertices, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
+
+	// color
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(2 * sizeof(float)));
+	glEnableVertexAttribArray(1);
 
 	delete[] targetVertices;
 }
