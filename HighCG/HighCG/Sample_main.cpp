@@ -15,7 +15,7 @@ using namespace std;
 
 const int SCREENWIDTH = 480;
 const int SCREENHEIGHT = 480;
-const int Tessellation = 30;
+const int Tessellation = 64;
 const double PI = 3.1415926;
 
 float positions[100];
@@ -110,16 +110,30 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 
 void calcVertices() {
 	
-	int switchingPointLastIdx = Tessellation - 1;
+	int switchingPointLastIdx = (drawVertices.size() / 2) - 2;
+	float x, y;
 
-	// start idx 1 (except start point)
+	// Add Left quater circle
 	for (int i = switchingPointLastIdx; i >= 0; i--) {
-		float x = drawVertices.at(2 * i);
-		float y = drawVertices.at(2 * i + 1);
+		x = drawVertices.at(2 * i);
+		y = drawVertices.at(2 * i + 1);
 	
 		drawVertices.push_back(-1 * x);
 		drawVertices.push_back(y);
 	}
+
+	// Add bottom half circle
+	switchingPointLastIdx = (drawVertices.size() / 2) - 2;
+	for (int i = switchingPointLastIdx; i >= 1; i--) {
+		x = drawVertices.at(2 * i);
+		y = drawVertices.at(2 * i + 1);
+
+		drawVertices.push_back(x);
+		drawVertices.push_back(-1 * y);
+	}
+
+	drawVertices.push_back(drawVertices.at(0));
+	drawVertices.push_back(drawVertices.at(1));
 }
 
 void renderScene(void)
@@ -130,31 +144,31 @@ void renderScene(void)
 	if (VertexNum == 2) {
 		cout << "Draw quater circle" << endl;
 
-		for (int i = 0; i < Tessellation + 1; i++) {
-			drawVertices.push_back(radius * cos(90.0 / Tessellation * i * PI / 180.0));
-			drawVertices.push_back(radius * sin(90.0 / Tessellation * i * PI / 180.0));
-		}
-		calcVertices();
-		cout << "size" << drawVertices.size() << endl;
-
-		float* targetVertices = new float[drawVertices.size()];
-		for (int i = 0; i < drawVertices.size(); i++) {
-			targetVertices[i] = drawVertices.at(i);
-		}
-
-		glBufferData(GL_ARRAY_BUFFER, sizeof(GLsizeiptr) * 4 * (drawVertices.size() / 2), targetVertices, GL_STATIC_DRAW);
-		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
-		glEnableVertexAttribArray(0);
-
-		delete[] targetVertices;
-
 		glDrawArrays(GL_LINE_STRIP, 0, drawVertices.size() / 2);
 	}
 
 	glutSwapBuffers();
 }
 
+void bindCircleData() {
+	for (int i = 0; i < Tessellation + 1; i++) {
+		drawVertices.push_back(radius * cos(90.0 / Tessellation * i * PI / 180.0));
+		drawVertices.push_back(radius * sin(90.0 / Tessellation * i * PI / 180.0));
+	}
+	calcVertices();
+	cout << "size" << drawVertices.size() << endl;
 
+	float* targetVertices = new float[drawVertices.size()];
+	for (int i = 0; i < drawVertices.size(); i++) {
+		targetVertices[i] = drawVertices.at(i);
+	}
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(GLsizeiptr) * 4 * (drawVertices.size() / 2), targetVertices, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, (void*)0);
+	glEnableVertexAttribArray(0);
+
+	delete[] targetVertices;
+}
 
 void init()
 {
@@ -202,6 +216,9 @@ void mousePressed(int btn, int state, int x, int y) {
 			radius = sqrt(pow(center.x - secondPoint.x, 2) + pow(center.y - secondPoint.y, 2));
 			cout << "radius : ";
 			cout << radius << endl;
+			
+			// Calculate Other points
+			bindCircleData();
 
 			// Transfer center pos to vertex shader
 			GLint centerPosLocation = glGetUniformLocation(programID, "CenterPos");
