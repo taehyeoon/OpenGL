@@ -33,13 +33,15 @@ const int TESSELLATION_DELATA = 1;
 const int VERTEX_SIZE = 3;
 const int COLOR_SIZE = 4;
 const int ONE_VERTEX_DATA_SIZE = VERTEX_SIZE + COLOR_SIZE;
+const int MAX_CIRCLE_NUM = 100;
 
 bool inputComplete;
 int tessellation = 2;
 int verticesNum;
+int curCircleNum;
 double radius;
 vector<float> verticesData;
-Vector2 centerPos;
+Vector2 centerPos[MAX_CIRCLE_NUM];
 GLuint programID;
 
 
@@ -112,7 +114,11 @@ void renderScene(void)
 	if (inputComplete) {
 		cout << "Draw quater circle" << endl;
 		cout << "verticesNum" << verticesNum << endl;
-		glDrawArrays(GL_LINE_LOOP, 0, verticesNum);
+		for (int i = 0; i < curCircleNum; i++) {
+			GLint centerPosLocation = glGetUniformLocation(programID, "CenterPos");
+			glUniform3f(centerPosLocation, centerPos[i].x, centerPos[i].y, 0);
+			glDrawArrays(GL_LINE_LOOP, 0, verticesNum);
+		}
 	}
 
 	glutSwapBuffers();
@@ -311,22 +317,36 @@ void init()
 
 void mousePressed(int btn, int state, int x, int y) {
 	
+	// Left click
 	if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-
-		if (inputComplete) return;
-
+		
 		// Normalize clicked position to range[-1,1]
 		Vector2 normalizedPos = nomalizedPosByLeftTop(x, y);
 		cout << x << " , " << y << " -> " << normalizedPos.x << " , " << normalizedPos.y << endl;;
+		
+		// if already compute radius,
+		// then draw same scale circle
+		if (inputComplete) {
+			// it's maximum number of circle
+			if (curCircleNum >= MAX_CIRCLE_NUM) {
+				cout << "exceed max circle number" << endl;
+				return;
+			}
+			// save center position to list
+			centerPos[curCircleNum] = normalizedPos;
+			curCircleNum += 1;
+			return;
+		}
+		
 
 		// Save center position
-		if (centerPos.x == 0 && centerPos.y == 0) {
-			centerPos = normalizedPos;
+		if (centerPos[curCircleNum].x == 0 && centerPos[curCircleNum].y == 0) {
+			centerPos[curCircleNum] = normalizedPos;
 			return;
 		}
 
 		// Calculate radius
-		radius = sqrt(pow(centerPos.x - normalizedPos.x, 2) + pow(centerPos.y - normalizedPos.y, 2));
+		radius = sqrt(pow(centerPos[curCircleNum].x - normalizedPos.x, 2) + pow(centerPos[curCircleNum].y - normalizedPos.y, 2));
 		cout << "radius : ";
 		cout << radius << endl;
 
@@ -335,11 +355,13 @@ void mousePressed(int btn, int state, int x, int y) {
 
 		// Transfer center pos to vertex shader
 		GLint centerPosLocation = glGetUniformLocation(programID, "CenterPos");
-		glUniform3f(centerPosLocation, centerPos.x, centerPos.y, 0);
+		glUniform3f(centerPosLocation, centerPos[curCircleNum].x, centerPos[curCircleNum].y, 0);
 
 		inputComplete = true;
+		curCircleNum += 1;
 	}
 
+	// Right click
 	if (btn == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
 
 		if (!inputComplete) return;
