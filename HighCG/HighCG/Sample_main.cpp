@@ -33,17 +33,15 @@ const int TESSELLATION_DELATA = 1;
 const int VERTEX_SIZE = 3;
 const int COLOR_SIZE = 4;
 const int ONE_VERTEX_DATA_SIZE = VERTEX_SIZE + COLOR_SIZE;
-const int MAX_CIRCLE_NUM = 100;
 
 bool inputComplete;
 int tessellation = 2;
 int verticesNum;
-int curCircleNum;
 double radius;
 vector<float> verticesData;
-Vector2 centerPos[MAX_CIRCLE_NUM];
+vector<Vector2> centerPos;
 GLuint programID;
-
+GLint centerPosLocation;
 
 
 // Graphic
@@ -58,7 +56,7 @@ void bindCircleData();
 // Input
 void mousePressed(int btn, int state, int x, int y);
 void keyboardPressed(unsigned char key, int x, int y);
-Vector2 nomalizedPosByLeftTop(int x, int y);
+Vector2 normalizedPosByLeftTop(int x, int y);
 
 int main(int argc, char **argv)
 {
@@ -89,10 +87,12 @@ int main(int argc, char **argv)
 	GLuint VBO;
 	glGenVertexArrays(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
+	
 	programID = LoadShaders("VertexShader.txt", "FragmentShader.txt");
 
 	glUseProgram(programID);
+	
+	centerPosLocation = glGetUniformLocation(programID, "CenterPos");
 
 	glutDisplayFunc(renderScene);
 
@@ -114,9 +114,9 @@ void renderScene(void)
 	if (inputComplete) {
 		cout << "Draw quater circle" << endl;
 		cout << "verticesNum" << verticesNum << endl;
-		for (int i = 0; i < curCircleNum; i++) {
-			GLint centerPosLocation = glGetUniformLocation(programID, "CenterPos");
-			glUniform3f(centerPosLocation, centerPos[i].x, centerPos[i].y, 0);
+		
+		for (vector<Vector2>::iterator it = centerPos.begin(); it != centerPos.end(); it++) {
+			glUniform3f(centerPosLocation, (*it).x, (*it).y, 0);
 			glDrawArrays(GL_LINE_LOOP, 0, verticesNum);
 		}
 	}
@@ -321,44 +321,34 @@ void mousePressed(int btn, int state, int x, int y) {
 	if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
 		
 		// Normalize clicked position to range[-1,1]
-		Vector2 normalizedPos = nomalizedPosByLeftTop(x, y);
+		Vector2 normalizedPos = normalizedPosByLeftTop(x, y);
 		cout << x << " , " << y << " -> " << normalizedPos.x << " , " << normalizedPos.y << endl;;
 		
 		// if already compute radius,
 		// then draw same scale circle
 		if (inputComplete) {
-			// it's maximum number of circle
-			if (curCircleNum >= MAX_CIRCLE_NUM) {
-				cout << "exceed max circle number" << endl;
-				return;
-			}
 			// save center position to list
-			centerPos[curCircleNum] = normalizedPos;
-			curCircleNum += 1;
+			centerPos.push_back(normalizedPos);
 			return;
 		}
 		
 
 		// Save center position
-		if (centerPos[curCircleNum].x == 0 && centerPos[curCircleNum].y == 0) {
-			centerPos[curCircleNum] = normalizedPos;
+		if (centerPos.size() == 0) {
+			centerPos.push_back(normalizedPos);
 			return;
 		}
 
 		// Calculate radius
-		radius = sqrt(pow(centerPos[curCircleNum].x - normalizedPos.x, 2) + pow(centerPos[curCircleNum].y - normalizedPos.y, 2));
+		radius = sqrt(pow(centerPos.at(0).x - normalizedPos.x, 2) + pow(centerPos.at(0).y - normalizedPos.y, 2));
 		cout << "radius : ";
 		cout << radius << endl;
 
 		// Calculate Other points
 		bindCircleData();
 
-		// Transfer center pos to vertex shader
-		GLint centerPosLocation = glGetUniformLocation(programID, "CenterPos");
-		glUniform3f(centerPosLocation, centerPos[curCircleNum].x, centerPos[curCircleNum].y, 0);
-
 		inputComplete = true;
-		curCircleNum += 1;
+		//curCircleNum += 1;
 	}
 
 	// Right click
@@ -377,7 +367,7 @@ void keyboardPressed(unsigned char key, int x, int y)
 		exit(0);
 }
 
-Vector2 nomalizedPosByLeftTop(int x, int y) {
+Vector2 normalizedPosByLeftTop(int x, int y) {
 	Vector2 result;
 	result.x = (2.0f * x / SCREEN_WIDTH) - 1;
 	result.y = 1 - (2.0f * y / SCREEN_HEIGHT);
