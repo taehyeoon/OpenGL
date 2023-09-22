@@ -93,21 +93,28 @@ int main(int argc, char **argv)
 	glUseProgram(programID);
 	
 	float points[] = {
-		-0.5f,  0.5f,  0.0f,
-		 0.5f,  0.5f,  0.0f,
-		 0.5f, -0.5f,  0.0f,
-		-0.5f, -0.5f,  0.0f
+		-0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 
+		 0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
+		 0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+		-0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f,
 	};
 
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 12, points, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 24, points, GL_STATIC_DRAW);
 
 	// Position
 	glVertexAttribPointer(0, 3,
 		GL_FLOAT, GL_FALSE,
-		3 * sizeof(float),
+		6 * sizeof(float),
 		(void*)0);
 	glEnableVertexAttribArray(0);
-	//centerPosLocation = glGetUniformLocation(programID, "CenterPos");
+
+	// Color
+	glVertexAttribPointer(1, 3,
+		GL_FLOAT, GL_FALSE,
+		6 * sizeof(float),
+		(void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+
 
 	glutDisplayFunc(renderScene);
 
