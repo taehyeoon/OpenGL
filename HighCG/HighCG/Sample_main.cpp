@@ -115,6 +115,14 @@ int main(int argc, char **argv)
 		(void*)(3 * sizeof(float)));
 	glEnableVertexAttribArray(1);
 
+	GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
+	if (tesselationID != -1) {
+		glUniform1i(tesselationID, 100);
+		cout << tesselationID << endl;
+	}
+	else {
+		cout << "there is no tessellation id" << endl;
+	}
 
 	glutDisplayFunc(renderScene);
 
@@ -133,19 +141,7 @@ void renderScene(void)
 	//Clear all pixels
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	//if (inputComplete) {
-	//	cout << "Draw quater circle" << endl;
-	//	cout << "verticesNum" << verticesNum << endl;
-	//	
-	//	for (vector<Vector2>::iterator it = centerPos.begin(); it != centerPos.end(); it++) {
-	//		glUniform3f(centerPosLocation, (*it).x, (*it).y, 0);
-	//		glDrawArrays(GL_LINE_LOOP, 0, verticesNum);
-	//	}
-	//}
-	
-
-
-	glDrawArrays(GL_POINTS, 0, 4);
+	glDrawArrays(GL_LINES_ADJACENCY, 0, 4);
 	glutSwapBuffers();
 }
 

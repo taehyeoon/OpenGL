@@ -1,7 +1,7 @@
 #version 400 core
 
-layout (points) in;
-layout (triangle_strip, max_vertices = 5) out;
+layout (lines_adjacency) in;
+layout (line_strip, max_vertices = 256) out;
 
 in vec3 vColor[];
 out vec3 fColor;
@@ -10,24 +10,29 @@ in VS_OUT{
 	vec3 color;
 } gs_in[];
 
-void build_house(vec4 position)
-{    
-    fColor = gs_in[0].color;
-
-    gl_Position = position + vec4(-0.2, -0.2, 0.0, 0.0);    // 1:bottom-left
-    EmitVertex();   
-    gl_Position = position + vec4( 0.2, -0.2, 0.0, 0.0);    // 2:bottom-right
-    EmitVertex();
-    gl_Position = position + vec4(-0.2,  0.2, 0.0, 0.0);    // 3:top-left
-    EmitVertex();
-    gl_Position = position + vec4( 0.2,  0.2, 0.0, 0.0);    // 4:top-right
-    EmitVertex();
-    gl_Position = position + vec4( 0.0,  0.4, 0.0, 0.0);    // 5:top
-    fColor = vec3(1.0, 1.0, 1.0);
-    EmitVertex();
-    EndPrimitive();
-}
+uniform int u_tessellation;
 
 void main() {    
-    build_house(gl_in[0].gl_Position);
+    fColor = gs_in[0].color;
+    int testInt = u_tessellation;
+    float du = 1.0 / float(u_tessellation);
+    float u = 0;
+    for(int i = 0; i <= u_tessellation; i++){
+        float term1 = 1.0 - u;
+        float term2 = term1 * term1;
+        float term3 = term1 * term2;
+
+        float u2 = u * u;
+        float u3 = u * u2;
+
+        vec4 p = term3 * gl_in[0].gl_Position
+            + 3.0 * u * term2 * gl_in[1].gl_Position
+            + 3.0 * u2 * term1 * gl_in[2].gl_Position
+            + 3.0 * u3 * gl_in[3].gl_Position;
+        gl_Position = p;
+        EmitVertex();
+        u += du;
+    }
+
+    EndPrimitive();
 }  
