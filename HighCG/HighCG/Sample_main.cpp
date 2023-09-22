@@ -26,8 +26,8 @@ struct Vector3 {
 	float z;
 };
 
-const int SCREEN_WIDTH = 1080;
-const int SCREEN_HEIGHT = 1080;
+const int SCREEN_WIDTH = 480;
+const int SCREEN_HEIGHT = 480;
 const double PI = 3.1415926;
 const int TESSELLATION_DELATA = 1;
 const int VERTEX_SIZE = 3;
@@ -45,7 +45,7 @@ GLint centerPosLocation;
 
 
 // Graphic
-GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path);
+GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path, const char* geometry_file_path);
 void init();
 void renderScene(void);
 
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 	
 	//These two functions are used to define the position and size of the window. 
-	glutInitWindowPosition(400, 0);
+	glutInitWindowPosition(0, 400);
 	glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
 	
 	//This is used to define the name of the window.
@@ -77,8 +77,8 @@ int main(int argc, char **argv)
 	//call initization function
 	init();
 
-	glutMouseFunc(mousePressed);
-	glutKeyboardFunc(keyboardPressed);
+	//glutMouseFunc(mousePressed);
+	//glutKeyboardFunc(keyboardPressed);
 
 	GLuint VAO;
 	glGenVertexArrays(1, &VAO);
@@ -88,11 +88,26 @@ int main(int argc, char **argv)
 	glGenVertexArrays(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	
-	programID = LoadShaders("VertexShader.txt", "FragmentShader.txt");
+	programID = LoadShaders("VertexShader.txt", "FragmentShader.txt", "GeometryShader.txt");
 
 	glUseProgram(programID);
 	
-	centerPosLocation = glGetUniformLocation(programID, "CenterPos");
+	float points[] = {
+		-0.5f,  0.5f,  0.0f,
+		 0.5f,  0.5f,  0.0f,
+		 0.5f, -0.5f,  0.0f,
+		-0.5f, -0.5f,  0.0f
+	};
+
+	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 12, points, GL_STATIC_DRAW);
+
+	// Position
+	glVertexAttribPointer(0, 3,
+		GL_FLOAT, GL_FALSE,
+		3 * sizeof(float),
+		(void*)0);
+	glEnableVertexAttribArray(0);
+	//centerPosLocation = glGetUniformLocation(programID, "CenterPos");
 
 	glutDisplayFunc(renderScene);
 
@@ -111,24 +126,29 @@ void renderScene(void)
 	//Clear all pixels
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	if (inputComplete) {
-		cout << "Draw quater circle" << endl;
-		cout << "verticesNum" << verticesNum << endl;
-		
-		for (vector<Vector2>::iterator it = centerPos.begin(); it != centerPos.end(); it++) {
-			glUniform3f(centerPosLocation, (*it).x, (*it).y, 0);
-			glDrawArrays(GL_LINE_LOOP, 0, verticesNum);
-		}
-	}
+	//if (inputComplete) {
+	//	cout << "Draw quater circle" << endl;
+	//	cout << "verticesNum" << verticesNum << endl;
+	//	
+	//	for (vector<Vector2>::iterator it = centerPos.begin(); it != centerPos.end(); it++) {
+	//		glUniform3f(centerPosLocation, (*it).x, (*it).y, 0);
+	//		glDrawArrays(GL_LINE_LOOP, 0, verticesNum);
+	//	}
+	//}
+	
 
+
+	glDrawArrays(GL_POINTS, 0, 4);
 	glutSwapBuffers();
 }
 
-GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
+
+GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path, const char* geometry_file_path)
 {
 	//create the shaders
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+	GLuint GeometryShaderID = glCreateShader(GL_GEOMETRY_SHADER);
 
 	GLint Result = GL_FALSE;
 	int InfoLogLength;
@@ -157,6 +177,8 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 	glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
 	fprintf(stdout, "%s\n", &VertexShaderErrorMessage[0]);
 
+	
+	
 	//Read the fragment shader code from the file
 	string FragmentShaderCode;
 	ifstream FragmentShaderStream(fragment_file_path, ios::in);
@@ -181,11 +203,40 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
     glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
     fprintf(stdout, "%s\n", &FragmentShaderErrorMessage[0]);
 
+
+
+	// Read the Geometry shader code from the file
+	string GeometryShaderCode;
+	ifstream GeometryShaderStream(geometry_file_path, ios::in);
+	if (GeometryShaderStream.is_open())
+	{
+		string Line = "";
+		while (getline(GeometryShaderStream, Line))
+			GeometryShaderCode += "\n" + Line;
+		GeometryShaderStream.close();
+	}
+
+	//Compile Geometry Shader
+	printf("Compiling shader : %s\n", geometry_file_path);
+	char const* GeometrySourcePointer = GeometryShaderCode.c_str();
+	glShaderSource(GeometryShaderID, 1, &GeometrySourcePointer, NULL);
+	glCompileShader(GeometryShaderID);
+
+	//Check Geometry Shader
+	glGetShaderiv(GeometryShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(GeometryShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	vector<char> GeometryShaderErrorMessage(max(InfoLogLength, int(1)));
+	glGetShaderInfoLog(GeometryShaderID, InfoLogLength, NULL, &GeometryShaderErrorMessage[0]);
+	fprintf(stdout, "%s\n", &GeometryShaderErrorMessage[0]);
+		
+
+
 	//Link the program
 	fprintf(stdout, "Linking program\n");
     GLuint ProgramID = glCreateProgram();
     glAttachShader(ProgramID, VertexShaderID);
     glAttachShader(ProgramID, FragmentShaderID);
+    glAttachShader(ProgramID, GeometryShaderID);
     glLinkProgram(ProgramID);
  
     // Check the program
@@ -197,6 +248,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
  
     glDeleteShader(VertexShaderID);
     glDeleteShader(FragmentShaderID);
+    glDeleteShader(GeometryShaderID);
  
     return ProgramID;
 }

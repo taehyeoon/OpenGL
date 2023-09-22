@@ -1,14 +1,9 @@
 #version 400 core
 
 layout(location = 0) in vec3 inpos;
-layout(location = 1) in vec4 inLineColor;
-
-out vec4 lineColor;
-uniform vec3 CenterPos;
 
 void main()
 {	
-	gl_Position = vec4 (inpos + CenterPos ,1);
+	gl_Position = vec4(inpos, 1);
 	gl_PointSize = 5.0f;
-	lineColor = inLineColor;
 }
