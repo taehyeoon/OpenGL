@@ -26,16 +26,23 @@ struct Vector3 {
 	float z;
 };
 
+
+// Screen
 const int SCREEN_WIDTH = 480;
 const int SCREEN_HEIGHT = 480;
+
+// Tessellation
+const int TESSEL_DELATA = 1;
+const int TESSEL_MAX = 255;
+const int TESSEL_MIN = 1;
+int tessel = 10;
+
 const double PI = 3.1415926;
-const int TESSELLATION_DELATA = 1;
 const int VERTEX_SIZE = 3;
 const int COLOR_SIZE = 4;
 const int ONE_VERTEX_DATA_SIZE = VERTEX_SIZE + COLOR_SIZE;
 
 bool inputComplete;
-int tessellation = 100;
 vector<Vector2> controlPoints;
 GLuint programID;
 GLint centerPosLocation;
@@ -84,15 +91,6 @@ int main(int argc, char **argv)
 
 	glUseProgram(programID);
 
-	GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
-	if (tesselationID != -1) {
-		glUniform1i(tesselationID, tessellation);
-		cout << tesselationID << endl;
-	}
-	else {
-		cout << "there is no tessellation id" << endl;
-	}
-
 	glutDisplayFunc(renderScene);
 
 	//enter GLUT event processing cycle
@@ -113,6 +111,7 @@ void renderScene(void)
 	if (inputComplete) {
 		glDrawArrays(GL_LINES_ADJACENCY, 0, 4);
 	}
+
 	glutSwapBuffers();
 }
 
@@ -281,16 +280,12 @@ void mousePressed(int btn, int state, int x, int y) {
 				3 * sizeof(float),
 				(void*)0);
 			glEnableVertexAttribArray(0);
+
+			// Tessellation
+			GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
+			glUniform1i(tesselationID, tessel);
+			cout << "Current Tessellation : " << tessel << endl;
 		}
-		
-	}
-
-	// Right click
-	if (btn == GLUT_RIGHT_BUTTON && state == GLUT_DOWN) {
-
-		if (!inputComplete) return;
-
-		tessellation += TESSELLATION_DELATA;
 	}
 }
 
@@ -298,6 +293,28 @@ void keyboardPressed(unsigned char key, int x, int y)
 {
 	if (key == 27)
 		exit(0);
+
+	if (!inputComplete) return;
+
+	switch (key)
+	{
+		case 'w':
+			cout << "w key pressed" << endl;
+			tessel += TESSEL_DELATA;
+			if (tessel > TESSEL_MAX) tessel = TESSEL_MAX;
+			break;
+		case 's':
+			cout << "s key pressed" << endl;
+			tessel -= TESSEL_DELATA;
+			if (tessel < TESSEL_MIN) tessel = TESSEL_MIN;
+			break;
+		default:
+			break;
+	}
+	GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
+	glUniform1i(tesselationID, tessel);
+	cout << "Current Tessellation : " << tessel << endl << endl;
+	glutPostRedisplay();
 }
 
 Vector2 normalizedPosByLeftTop(int x, int y) {
