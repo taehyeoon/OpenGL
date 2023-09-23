@@ -35,23 +35,15 @@ const int COLOR_SIZE = 4;
 const int ONE_VERTEX_DATA_SIZE = VERTEX_SIZE + COLOR_SIZE;
 
 bool inputComplete;
-int tessellation = 2;
-int verticesNum;
-double radius;
-vector<float> verticesData;
-vector<Vector2> centerPos;
+int tessellation = 100;
+vector<Vector2> controlPoints;
 GLuint programID;
 GLint centerPosLocation;
-
 
 // Graphic
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path, const char* geometry_file_path);
 void init();
 void renderScene(void);
-
-// Calculate
-void addAllCircleVertices();
-void bindCircleData();
 
 // Input
 void mousePressed(int btn, int state, int x, int y);
@@ -77,8 +69,8 @@ int main(int argc, char **argv)
 	//call initization function
 	init();
 
-	//glutMouseFunc(mousePressed);
-	//glutKeyboardFunc(keyboardPressed);
+	glutMouseFunc(mousePressed);
+	glutKeyboardFunc(keyboardPressed);
 
 	GLuint VAO;
 	glGenVertexArrays(1, &VAO);
@@ -91,33 +83,10 @@ int main(int argc, char **argv)
 	programID = LoadShaders("VertexShader.txt", "FragmentShader.txt", "GeometryShader.txt");
 
 	glUseProgram(programID);
-	
-	float points[] = {
-		-0.5f,  0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 
-		 0.5f,  0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-		 0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
-		-0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f,
-	};
-
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 24, points, GL_STATIC_DRAW);
-
-	// Position
-	glVertexAttribPointer(0, 3,
-		GL_FLOAT, GL_FALSE,
-		6 * sizeof(float),
-		(void*)0);
-	glEnableVertexAttribArray(0);
-
-	// Color
-	glVertexAttribPointer(1, 3,
-		GL_FLOAT, GL_FALSE,
-		6 * sizeof(float),
-		(void*)(3 * sizeof(float)));
-	glEnableVertexAttribArray(1);
 
 	GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
 	if (tesselationID != -1) {
-		glUniform1i(tesselationID, 100);
+		glUniform1i(tesselationID, tessellation);
 		cout << tesselationID << endl;
 	}
 	else {
@@ -141,7 +110,9 @@ void renderScene(void)
 	//Clear all pixels
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glDrawArrays(GL_LINES_ADJACENCY, 0, 4);
+	if (inputComplete) {
+		glDrawArrays(GL_LINES_ADJACENCY, 0, 4);
+	}
 	glutSwapBuffers();
 }
 
@@ -256,106 +227,6 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path,
     return ProgramID;
 }
 
-void addAllCircleVertices() {
-	
-	int switchingPointLastIdx = (verticesData.size() / VERTEX_SIZE) - 2;
-	float x, y, z;
-
-	// Add Left quater circle vertices
-	for (int i = switchingPointLastIdx; i >= 0; i--) {
-		x = verticesData.at(VERTEX_SIZE * i);
-		y = verticesData.at(VERTEX_SIZE * i + 1);
-		z = 0;
-
-		verticesData.push_back(-1 * x);
-		verticesData.push_back(y);
-		verticesData.push_back(0);
-	}
-
-	// Add bottom half circle vertices
-	switchingPointLastIdx = (verticesData.size() / VERTEX_SIZE) - 2;
-	for (int i = switchingPointLastIdx; i >= 1; i--) {
-		x = verticesData.at(VERTEX_SIZE * i);
-		y = verticesData.at(VERTEX_SIZE * i + 1);
-		z = 0;
-
-		verticesData.push_back(x);
-		verticesData.push_back(-1 * y);
-		verticesData.push_back(z);
-	}
-
-	// Only include vertices Data
-	verticesNum = verticesData.size() / VERTEX_SIZE;
-
-	// Random Color
-	random_device dev;
-	mt19937 rng(dev());
-	uniform_int_distribution<mt19937::result_type> dist1000(1, 1000); // distribution in range [1, 6]
-
-	float r = dist1000(rng) / 1000.0f;
-	float g = dist1000(rng) / 1000.0f;
-	float b = dist1000(rng) / 1000.0f;
-	vector<float> lineColor = { r, g, b, 1 };
-	vector<float>::iterator it;
-	it = verticesData.begin();
-	it += VERTEX_SIZE;
-
-	// Insert color information between the location information of the point
-	for (int i = 0; i < verticesNum - 1; i++) {
-		it = verticesData.insert(it, lineColor.begin(), lineColor.end());
-		it += ONE_VERTEX_DATA_SIZE;
-	}
-	verticesData.insert(it, lineColor.begin(), lineColor.end());
-
-	// Just for debug
-	int idx = 0;
-	for (it = verticesData.begin(); it != verticesData.end(); it++) {
-		cout << *it << ", ";
-		idx += 1;
-		if (idx == ONE_VERTEX_DATA_SIZE) {
-			idx = 0;
-			cout << endl;
-		}
-	}
-}
-
-void bindCircleData() {
-
-	verticesData.clear();
-	cout << "current Tessllation : " << tessellation << endl;
-
-	for (int i = 0; i < tessellation + 1; i++) {
-		verticesData.push_back(radius * cos(90.0 / tessellation * i * PI / 180.0));
-		verticesData.push_back(radius * sin(90.0 / tessellation * i * PI / 180.0));
-		verticesData.push_back(0);
-	}
-
-	addAllCircleVertices();
-
-	float* targetVertices = new float[verticesData.size()];
-	for (unsigned int i = 0; i < verticesData.size(); i++) {
-		targetVertices[i] = verticesData.at(i);
-	}
-
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * verticesData.size(), targetVertices, GL_STATIC_DRAW);
-	
-	// Position
-	glVertexAttribPointer(0, VERTEX_SIZE, 
-		GL_FLOAT, GL_FALSE, 
-		ONE_VERTEX_DATA_SIZE * sizeof(float), 
-		(void*)0);
-	glEnableVertexAttribArray(0);
-
-	// Color
-	glVertexAttribPointer(1, COLOR_SIZE, 
-		GL_FLOAT, GL_FALSE, 
-		ONE_VERTEX_DATA_SIZE * sizeof(float), 
-		(void*)(VERTEX_SIZE * sizeof(float)));
-	glEnableVertexAttribArray(1);
-
-	delete[] targetVertices;
-}
-
 void init()
 {
     //initilize the glew and check the errors.
@@ -375,35 +246,43 @@ void mousePressed(int btn, int state, int x, int y) {
 	// Left click
 	if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
 		
+		cout << "mouse clicked" << endl;
+		if (inputComplete) return;
+
 		// Normalize clicked position to range[-1,1]
 		Vector2 normalizedPos = normalizedPosByLeftTop(x, y);
-		cout << x << " , " << y << " -> " << normalizedPos.x << " , " << normalizedPos.y << endl;;
 		
-		// if already compute radius,
-		// then draw same scale circle
-		if (inputComplete) {
-			// save center position to list
-			centerPos.push_back(normalizedPos);
-			return;
+		// Add control point
+		controlPoints.push_back(normalizedPos);
+		cout << "Add control point" << endl;
+
+		// show current control points
+		for (unsigned int i = 0; i < controlPoints.size(); i++) {
+			cout << "(" << controlPoints[i].x << " , " << controlPoints[i].y << ")" << endl;
+		}
+		cout << endl;
+
+		// Transfer data from cpu to gpu
+		if (controlPoints.size() == 4) {
+			inputComplete = true;
+
+			float* datas = new float[4 * VERTEX_SIZE];
+			for (unsigned int i = 0; i < controlPoints.size(); i++) {
+				datas[3 * i] = controlPoints.at(i).x;
+				datas[3 * i + 1] = controlPoints.at(i).y;
+				datas[3 * i + 2] = 0;
+			}
+			glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * VERTEX_SIZE, datas, GL_STATIC_DRAW);
+			delete[] datas;
+
+			// Position
+			glVertexAttribPointer(0, 3,
+				GL_FLOAT, GL_FALSE,
+				3 * sizeof(float),
+				(void*)0);
+			glEnableVertexAttribArray(0);
 		}
 		
-
-		// Save center position
-		if (centerPos.size() == 0) {
-			centerPos.push_back(normalizedPos);
-			return;
-		}
-
-		// Calculate radius
-		radius = sqrt(pow(centerPos.at(0).x - normalizedPos.x, 2) + pow(centerPos.at(0).y - normalizedPos.y, 2));
-		cout << "radius : ";
-		cout << radius << endl;
-
-		// Calculate Other points
-		bindCircleData();
-
-		inputComplete = true;
-		//curCircleNum += 1;
 	}
 
 	// Right click
@@ -412,7 +291,6 @@ void mousePressed(int btn, int state, int x, int y) {
 		if (!inputComplete) return;
 
 		tessellation += TESSELLATION_DELATA;
-		bindCircleData();
 	}
 }
 
@@ -427,5 +305,7 @@ Vector2 normalizedPosByLeftTop(int x, int y) {
 	result.x = (2.0f * x / SCREEN_WIDTH) - 1;
 	result.y = 1 - (2.0f * y / SCREEN_HEIGHT);
 
+	cout << "Normalize : (" << x << " , " << y << ") -> (" 
+						<< result.x << " , " << result.y << ")" << endl;
 	return result;
 }

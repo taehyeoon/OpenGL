@@ -3,17 +3,10 @@
 layout (lines_adjacency) in;
 layout (line_strip, max_vertices = 256) out;
 
-in vec3 vColor[];
-out vec3 fColor;
-
-in VS_OUT{
-	vec3 color;
-} gs_in[];
-
 uniform int u_tessellation;
 
 void main() {    
-    fColor = gs_in[0].color;
+
     int testInt = u_tessellation;
     float du = 1.0 / float(u_tessellation);
     float u = 0;
