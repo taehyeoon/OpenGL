@@ -22,5 +22,6 @@
   <ItemGroup>
     <Text Include="FragmentShader.txt" />
     <Text Include="VertexShader.txt" />
+    <Text Include="GeometryShader.txt" />
   </ItemGroup>
 </Project>
