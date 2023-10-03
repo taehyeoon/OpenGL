@@ -23,5 +23,7 @@
     <Text Include="FragmentShader.txt" />
     <Text Include="VertexShader.txt" />
     <Text Include="GeometryShader.txt" />
+    <Text Include="TessControlShader.txt" />
+    <Text Include="TessEvalShader.txt" />
   </ItemGroup>
 </Project>

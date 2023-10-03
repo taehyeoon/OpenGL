@@ -86,6 +86,8 @@
   <ItemGroup>
     <Text Include="FragmentShader.txt" />
     <Text Include="GeometryShader.txt" />
+    <Text Include="TessControlShader.txt" />
+    <Text Include="TessEvalShader.txt" />
     <Text Include="VertexShader.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
