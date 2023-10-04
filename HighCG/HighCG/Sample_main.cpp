@@ -42,7 +42,7 @@ const int VERTEX_SIZE = 3;
 const int COLOR_SIZE = 4;
 const int ONE_VERTEX_DATA_SIZE = VERTEX_SIZE + COLOR_SIZE;
 
-bool inputComplete;
+bool isInputComplete;
 vector<Vector2> controlPoints;
 GLuint programID;
 GLint centerPosLocation;
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 	
 	//These two functions are used to define the position and size of the window. 
-	glutInitWindowPosition(0, 400);
+	glutInitWindowPosition(400, 100);
 	glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
 	
 	//This is used to define the name of the window.
@@ -77,8 +77,8 @@ int main(int argc, char **argv)
 	//call initization function
 	init();
 
-	//glutMouseFunc(mousePressed);
-	//glutKeyboardFunc(keyboardPressed);
+	glutMouseFunc(mousePressed);
+	glutKeyboardFunc(keyboardPressed);
 
 	GLuint VAO;
 	glGenVertexArrays(1, &VAO);
@@ -93,22 +93,6 @@ int main(int argc, char **argv)
 
 	glUseProgram(programID);
 
-	float datas[12] = {
-		-0.5f, -0.5f, 0.0f,
-		 0.5f, -0.5f, 0.0f,
-		 0.5f,  0.5f, 0.0f,
-		-0.5f,  0.5f, 0.0f,
-	};
-
-	glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 12, datas, GL_STATIC_DRAW);
-
-	// Position
-	glVertexAttribPointer(0, 3,
-		GL_FLOAT, GL_FALSE,
-		3 * sizeof(float),
-		(void*)0);
-	glEnableVertexAttribArray(0);
-	glPatchParameteri(GL_PATCH_VERTICES, 4);
 
 	glutDisplayFunc(renderScene);
 
@@ -127,7 +111,9 @@ void renderScene(void)
 	//Clear all pixels
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	glDrawArrays(GL_PATCHES, 0, 4);
+	if (isInputComplete) {
+		glDrawArrays(GL_PATCHES, 0, 4);
+	}
 
 	glutSwapBuffers();
 }
@@ -223,7 +209,7 @@ void mousePressed(int btn, int state, int x, int y) {
 	if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
 		
 		cout << "mouse clicked" << endl;
-		if (inputComplete) return;
+		if (isInputComplete) return;
 
 		// Normalize clicked position to range[-1,1]
 		Vector2 normalizedPos = normalizedPosByLeftTop(x, y);
@@ -240,7 +226,7 @@ void mousePressed(int btn, int state, int x, int y) {
 
 		// Transfer data from cpu to gpu
 		if (controlPoints.size() == 4) {
-			inputComplete = true;
+			isInputComplete = true;
 
 			float* datas = new float[4 * VERTEX_SIZE];
 			for (unsigned int i = 0; i < controlPoints.size(); i++) {
@@ -258,6 +244,9 @@ void mousePressed(int btn, int state, int x, int y) {
 				(void*)0);
 			glEnableVertexAttribArray(0);
 
+			// Patch data
+			glPatchParameteri(GL_PATCH_VERTICES, 4);
+
 			// Tessellation
 			GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
 			glUniform1i(tesselationID, tessel);
@@ -271,7 +260,7 @@ void keyboardPressed(unsigned char key, int x, int y)
 	if (key == 27)
 		exit(0);
 
-	if (!inputComplete) return;
+	if (!isInputComplete) return;
 
 	switch (key)
 	{
@@ -291,6 +280,7 @@ void keyboardPressed(unsigned char key, int x, int y)
 	GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
 	glUniform1i(tesselationID, tessel);
 	cout << "Current Tessellation : " << tessel << endl << endl;
+
 	glutPostRedisplay();
 }
 
