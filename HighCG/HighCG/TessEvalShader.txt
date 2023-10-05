@@ -1,0 +1,19 @@
+#version 400 core
+
+layout(isolines, equal_spacing) in;
+
+void main(){
+	float u = gl_TessCoord.x;
+	
+	vec4 pos0 = gl_in[0].gl_Position;
+	vec4 pos1 = gl_in[1].gl_Position;
+	vec4 pos2 = gl_in[2].gl_Position;
+	vec4 pos3 = gl_in[3].gl_Position;
+	
+	float b0 = (-1.) * u * u * u +	( 3.) * u * u +	(-3.) * u +	(1.);
+	float b1 = ( 3.) * u * u * u +	(-6.) * u * u +	( 0.) * u +	(4.);
+	float b2 = (-3.) * u * u * u +	( 3.) * u * u +	( 3.) * u +	(1.);
+	float b3 = ( 1.) * u * u * u +	( 0.) * u * u +	( 0.) * u +	(0.);
+	
+	gl_Position = ( b0 * pos0 + b1 * pos1 + b2 * pos2 + b3 * pos3 ) / 6.0;
+}

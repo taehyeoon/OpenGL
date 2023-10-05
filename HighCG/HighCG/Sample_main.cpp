@@ -28,8 +28,8 @@ struct Vector3 {
 
 
 // Screen
-const int SCREEN_WIDTH = 480;
-const int SCREEN_HEIGHT = 480;
+const int SCREEN_WIDTH = 1080;
+const int SCREEN_HEIGHT = 1080;
 
 // Tessellation
 const int TESSEL_DELATA = 1;
@@ -42,13 +42,14 @@ const int VERTEX_SIZE = 3;
 const int COLOR_SIZE = 4;
 const int ONE_VERTEX_DATA_SIZE = VERTEX_SIZE + COLOR_SIZE;
 
-bool inputComplete;
+bool isInputComplete;
 vector<Vector2> controlPoints;
 GLuint programID;
 GLint centerPosLocation;
 
 // Graphic
-GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path, const char* geometry_file_path);
+GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path, const char* geometry_file_path,
+	const char* tess_control_file_path, const char* tess_eval_file_path);
 void init();
 void renderScene(void);
 
@@ -67,7 +68,7 @@ int main(int argc, char **argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 	
 	//These two functions are used to define the position and size of the window. 
-	glutInitWindowPosition(0, 400);
+	glutInitWindowPosition(400, 0);
 	glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
 	
 	//This is used to define the name of the window.
@@ -87,9 +88,25 @@ int main(int argc, char **argv)
 	glGenVertexArrays(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	
-	programID = LoadShaders("VertexShader.txt", "FragmentShader.txt", "GeometryShader.txt");
+	programID = LoadShaders("VertexShader.txt", "FragmentShader.txt", "GeometryShader.txt",
+		"TessControlShader.txt", "TessEvalShader.txt");
 
 	glUseProgram(programID);
+
+	// Position
+	glVertexAttribPointer(0, 3,
+		GL_FLOAT, GL_FALSE,
+		3 * sizeof(float),
+		(void*)0);
+	glEnableVertexAttribArray(0);
+
+	// Patch data
+	glPatchParameteri(GL_PATCH_VERTICES, 4);
+
+	// Tessellation
+	GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
+	glUniform1i(tesselationID, tessel);
+	cout << "Current Tessellation : " << tessel << endl;
 
 	glutDisplayFunc(renderScene);
 
@@ -108,108 +125,68 @@ void renderScene(void)
 	//Clear all pixels
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	if (inputComplete) {
-		glDrawArrays(GL_LINES_ADJACENCY, 0, 4);
+	if (isInputComplete) {
+		for (int i = 0; i < controlPoints.size() - 3; i++) {
+			glDrawArrays(GL_PATCHES, i, 4);
+		}
 	}
 
 	glutSwapBuffers();
 }
 
-
-GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path, const char* geometry_file_path)
-{
-	//create the shaders
-	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
-	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
-	GLuint GeometryShaderID = glCreateShader(GL_GEOMETRY_SHADER);
+GLuint CreateShader(int shaderType, const char* file_path) {
+	GLuint ShaderID = glCreateShader(shaderType);
 
 	GLint Result = GL_FALSE;
 	int InfoLogLength;
 
-	//Read the vertex shader code from the file
-	string VertexShaderCode;
-	ifstream VertexShaderStream(vertex_file_path, ios::in);
-	if(VertexShaderStream.is_open())
+	string shaderCode;
+	ifstream shaderStream(file_path, ios::in);
+	if (shaderStream.is_open())
 	{
 		string Line = "";
-		while(getline(VertexShaderStream, Line))
-			VertexShaderCode += "\n" + Line;
-		VertexShaderStream.close();
+		while (getline(shaderStream, Line))
+			shaderCode += "\n" + Line;
+		shaderStream.close();
 	}
 
-	//Compile Vertex Shader
-	printf("Compiling shader : %s\n", vertex_file_path);
-	char const* VertexSourcePointer = VertexShaderCode.c_str();
-	glShaderSource(VertexShaderID, 1, &VertexSourcePointer, NULL);
-	glCompileShader(VertexShaderID);
+	//Compile Shader
+	printf("Compiling shader : %s\n", file_path);
+	char const* sourcePointer = shaderCode.c_str();
+	glShaderSource(ShaderID, 1, &sourcePointer, NULL);
+	glCompileShader(ShaderID);
 
-	//Check Vertex Shader
-	glGetShaderiv(VertexShaderID, GL_COMPILE_STATUS, &Result);
-	glGetShaderiv(VertexShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	vector<char> VertexShaderErrorMessage(max(InfoLogLength, int(1)));
-	glGetShaderInfoLog(VertexShaderID, InfoLogLength, NULL, &VertexShaderErrorMessage[0]);
-	fprintf(stdout, "%s\n", &VertexShaderErrorMessage[0]);
+	//Check Shader
+	glGetShaderiv(ShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(ShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	vector<char> shaderErrorMessage(max(InfoLogLength, int(1)));
+	glGetShaderInfoLog(ShaderID, InfoLogLength, NULL, &shaderErrorMessage[0]);
+	fprintf(stdout, "%s\n", &shaderErrorMessage[0]);
 
-	
-	
-	//Read the fragment shader code from the file
-	string FragmentShaderCode;
-	ifstream FragmentShaderStream(fragment_file_path, ios::in);
-	if(FragmentShaderStream.is_open())
-	{
-		string Line = "";
-		while(getline(FragmentShaderStream, Line))
-			FragmentShaderCode += "\n" + Line;
-		FragmentShaderStream.close();
-	}
+	return ShaderID;
+}
 
-	//Compile Fragment Shader
-	printf("Compiling shader : %s\n", fragment_file_path);
-	char const* FragmentSourcePointer = FragmentShaderCode.c_str();
-	glShaderSource(FragmentShaderID, 1, &FragmentSourcePointer, NULL);
-	glCompileShader(FragmentShaderID);
+GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path, const char* geometry_file_path, 
+	const char* tess_control_file_path, const char* tess_eval_file_path)
+{
+	//create the shaders
+	GLuint VertexShaderID = CreateShader(GL_VERTEX_SHADER, vertex_file_path);
+	GLuint FragmentShaderID = CreateShader(GL_FRAGMENT_SHADER, fragment_file_path);
+	//GLuint GeometryShaderID = CreateShader(GL_GEOMETRY_SHADER, geometry_file_path);
+	GLuint TessControlShaderID = CreateShader(GL_TESS_CONTROL_SHADER, tess_control_file_path);
+	GLuint TessEvalShaderID = CreateShader(GL_TESS_EVALUATION_SHADER, tess_eval_file_path);
 
-	//Check Fragment Shader
-	glGetShaderiv(FragmentShaderID, GL_COMPILE_STATUS, &Result);
-	glGetShaderiv(FragmentShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	vector<char> FragmentShaderErrorMessage(max(InfoLogLength, int(1)));
-    glGetShaderInfoLog(FragmentShaderID, InfoLogLength, NULL, &FragmentShaderErrorMessage[0]);
-    fprintf(stdout, "%s\n", &FragmentShaderErrorMessage[0]);
-
-
-
-	// Read the Geometry shader code from the file
-	string GeometryShaderCode;
-	ifstream GeometryShaderStream(geometry_file_path, ios::in);
-	if (GeometryShaderStream.is_open())
-	{
-		string Line = "";
-		while (getline(GeometryShaderStream, Line))
-			GeometryShaderCode += "\n" + Line;
-		GeometryShaderStream.close();
-	}
-
-	//Compile Geometry Shader
-	printf("Compiling shader : %s\n", geometry_file_path);
-	char const* GeometrySourcePointer = GeometryShaderCode.c_str();
-	glShaderSource(GeometryShaderID, 1, &GeometrySourcePointer, NULL);
-	glCompileShader(GeometryShaderID);
-
-	//Check Geometry Shader
-	glGetShaderiv(GeometryShaderID, GL_COMPILE_STATUS, &Result);
-	glGetShaderiv(GeometryShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
-	vector<char> GeometryShaderErrorMessage(max(InfoLogLength, int(1)));
-	glGetShaderInfoLog(GeometryShaderID, InfoLogLength, NULL, &GeometryShaderErrorMessage[0]);
-	fprintf(stdout, "%s\n", &GeometryShaderErrorMessage[0]);
-		
-
+	GLint Result = GL_FALSE;
+	int InfoLogLength;
 
 	//Link the program
 	fprintf(stdout, "Linking program\n");
     GLuint ProgramID = glCreateProgram();
     glAttachShader(ProgramID, VertexShaderID);
     glAttachShader(ProgramID, FragmentShaderID);
-    glAttachShader(ProgramID, GeometryShaderID);
+    //glAttachShader(ProgramID, GeometryShaderID);
+    glAttachShader(ProgramID, TessControlShaderID);
+    glAttachShader(ProgramID, TessEvalShaderID);
     glLinkProgram(ProgramID);
  
     // Check the program
@@ -221,7 +198,9 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path,
  
     glDeleteShader(VertexShaderID);
     glDeleteShader(FragmentShaderID);
-    glDeleteShader(GeometryShaderID);
+    //glDeleteShader(GeometryShaderID);
+    glDeleteShader(TessControlShaderID);
+    glDeleteShader(TessEvalShaderID);
  
     return ProgramID;
 }
@@ -246,7 +225,7 @@ void mousePressed(int btn, int state, int x, int y) {
 	if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
 		
 		cout << "mouse clicked" << endl;
-		if (inputComplete) return;
+		//if (isInputComplete) return;
 
 		// Normalize clicked position to range[-1,1]
 		Vector2 normalizedPos = normalizedPosByLeftTop(x, y);
@@ -262,29 +241,22 @@ void mousePressed(int btn, int state, int x, int y) {
 		cout << endl;
 
 		// Transfer data from cpu to gpu
-		if (controlPoints.size() == 4) {
-			inputComplete = true;
+		if (controlPoints.size() >= 4) {
+			isInputComplete = true;
 
-			float* datas = new float[4 * VERTEX_SIZE];
+			float* datas = new float[(controlPoints.size() + 1) * VERTEX_SIZE];
+			datas[controlPoints.size() * VERTEX_SIZE] = '\0';
+			datas[controlPoints.size() * VERTEX_SIZE + 1] = '\0';
+			datas[controlPoints.size() * VERTEX_SIZE + 2] = '\0';
+
 			for (unsigned int i = 0; i < controlPoints.size(); i++) {
 				datas[3 * i] = controlPoints.at(i).x;
 				datas[3 * i + 1] = controlPoints.at(i).y;
 				datas[3 * i + 2] = 0;
 			}
-			glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * VERTEX_SIZE, datas, GL_STATIC_DRAW);
+
+			glBufferData(GL_ARRAY_BUFFER, sizeof(float) * controlPoints.size() * VERTEX_SIZE, datas, GL_STATIC_DRAW);
 			delete[] datas;
-
-			// Position
-			glVertexAttribPointer(0, 3,
-				GL_FLOAT, GL_FALSE,
-				3 * sizeof(float),
-				(void*)0);
-			glEnableVertexAttribArray(0);
-
-			// Tessellation
-			GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
-			glUniform1i(tesselationID, tessel);
-			cout << "Current Tessellation : " << tessel << endl;
 		}
 	}
 }
@@ -294,7 +266,7 @@ void keyboardPressed(unsigned char key, int x, int y)
 	if (key == 27)
 		exit(0);
 
-	if (!inputComplete) return;
+	if (!isInputComplete) return;
 
 	switch (key)
 	{
@@ -314,6 +286,7 @@ void keyboardPressed(unsigned char key, int x, int y)
 	GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
 	glUniform1i(tesselationID, tessel);
 	cout << "Current Tessellation : " << tessel << endl << endl;
+
 	glutPostRedisplay();
 }
 
