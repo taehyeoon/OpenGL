@@ -28,8 +28,8 @@ struct Vector3 {
 
 
 // Screen
-const int SCREEN_WIDTH = 480;
-const int SCREEN_HEIGHT = 480;
+const int SCREEN_WIDTH = 1080;
+const int SCREEN_HEIGHT = 1080;
 
 // Tessellation
 const int TESSEL_DELATA = 1;
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 	
 	//These two functions are used to define the position and size of the window. 
-	glutInitWindowPosition(400, 100);
+	glutInitWindowPosition(400, 0);
 	glutInitWindowSize(SCREEN_WIDTH, SCREEN_HEIGHT);
 	
 	//This is used to define the name of the window.
@@ -93,6 +93,20 @@ int main(int argc, char **argv)
 
 	glUseProgram(programID);
 
+	// Position
+	glVertexAttribPointer(0, 3,
+		GL_FLOAT, GL_FALSE,
+		3 * sizeof(float),
+		(void*)0);
+	glEnableVertexAttribArray(0);
+
+	// Patch data
+	glPatchParameteri(GL_PATCH_VERTICES, 4);
+
+	// Tessellation
+	GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
+	glUniform1i(tesselationID, tessel);
+	cout << "Current Tessellation : " << tessel << endl;
 
 	glutDisplayFunc(renderScene);
 
@@ -112,7 +126,9 @@ void renderScene(void)
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	if (isInputComplete) {
-		glDrawArrays(GL_PATCHES, 0, 4);
+		for (int i = 0; i < controlPoints.size() - 3; i++) {
+			glDrawArrays(GL_PATCHES, i, 4);
+		}
 	}
 
 	glutSwapBuffers();
@@ -209,7 +225,7 @@ void mousePressed(int btn, int state, int x, int y) {
 	if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
 		
 		cout << "mouse clicked" << endl;
-		if (isInputComplete) return;
+		//if (isInputComplete) return;
 
 		// Normalize clicked position to range[-1,1]
 		Vector2 normalizedPos = normalizedPosByLeftTop(x, y);
@@ -225,32 +241,22 @@ void mousePressed(int btn, int state, int x, int y) {
 		cout << endl;
 
 		// Transfer data from cpu to gpu
-		if (controlPoints.size() == 4) {
+		if (controlPoints.size() >= 4) {
 			isInputComplete = true;
 
-			float* datas = new float[4 * VERTEX_SIZE];
+			float* datas = new float[(controlPoints.size() + 1) * VERTEX_SIZE];
+			datas[controlPoints.size() * VERTEX_SIZE] = '\0';
+			datas[controlPoints.size() * VERTEX_SIZE + 1] = '\0';
+			datas[controlPoints.size() * VERTEX_SIZE + 2] = '\0';
+
 			for (unsigned int i = 0; i < controlPoints.size(); i++) {
 				datas[3 * i] = controlPoints.at(i).x;
 				datas[3 * i + 1] = controlPoints.at(i).y;
 				datas[3 * i + 2] = 0;
 			}
-			glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 4 * VERTEX_SIZE, datas, GL_STATIC_DRAW);
+
+			glBufferData(GL_ARRAY_BUFFER, sizeof(float) * controlPoints.size() * VERTEX_SIZE, datas, GL_STATIC_DRAW);
 			delete[] datas;
-
-			// Position
-			glVertexAttribPointer(0, 3,
-				GL_FLOAT, GL_FALSE,
-				3 * sizeof(float),
-				(void*)0);
-			glEnableVertexAttribArray(0);
-
-			// Patch data
-			glPatchParameteri(GL_PATCH_VERTICES, 4);
-
-			// Tessellation
-			GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
-			glUniform1i(tesselationID, tessel);
-			cout << "Current Tessellation : " << tessel << endl;
 		}
 	}
 }
