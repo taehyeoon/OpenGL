@@ -14,6 +14,7 @@
 #define GL_SILENCE_DEPRECATION
 #include <OpenGL/gl3.h>
 #include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 #endif
 #include <GLut/glut.h>
 
@@ -42,8 +43,11 @@ GLint centerPosLocation;
 
 // Graphic
 GLuint CreateShader(int shaderType, const char* file_path);
-GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path, const char* geometry_file_path,
-    const char* tess_control_file_path, const char* tess_eval_file_path);
+GLuint LoadShaders(const char* vertex_file_path,       bool isActiveV,
+                   const char* tess_control_file_path, bool isActiveTC,
+                   const char* tess_eval_file_path,    bool isActiveTE,
+                   const char* geometry_file_path,     bool isActiveG,
+                   const char* fragment_file_path,     bool isActiveF);
 void init();
 void renderScene(void);
 
@@ -59,7 +63,7 @@ int main(int argc, char **argv)
     glutInit(&argc, argv);
     
     //GLUT_DOUBLE enables double buffering (drawing to a background buffer while the other buffer is displayed)
-#ifdef WINDOWS  // 윈도우즈에서 컴파일 할때는 아래를 포함
+#ifdef WINDOWS
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 #else
     glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_DOUBLE | GLUT_RGBA);
@@ -82,11 +86,11 @@ int main(int argc, char **argv)
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     
-    programID = LoadShaders("VertexShader.txt",
-                            "FragmentShader.txt",
-                            "GeometryShader.txt",
-                            "TessControlShader.txt",
-                            "TessEvalShader.txt");
+    programID = LoadShaders("VertexShader.txt",     true,
+                            "TessControlShader.txt",true,
+                            "TessEvalShader.txt",   true,
+                            "GeometryShader.txt",   false,
+                            "FragmentShader.txt",   true);
     glUseProgram(programID);
 
     // Position
@@ -103,7 +107,7 @@ int main(int argc, char **argv)
     GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
     glUniform1i(tesselationID, tessel);
     cout << "Current Tessellation : " << tessel << endl;
-
+    
     glutDisplayFunc(renderScene);
 
     //enter GLUT event processing cycle
@@ -118,7 +122,7 @@ void renderScene(void)
 {
     //Clear all pixels
     glClear(GL_COLOR_BUFFER_BIT);
-
+    
     if (isInputComplete) {
         for (int i = 0; i < controlPoints.size() - 3; i++) {
             glDrawArrays(GL_PATCHES, i, 4);
@@ -161,27 +165,46 @@ GLuint CreateShader(int shaderType, const char* file_path)
     return ShaderID;
 }
 
-GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path, const char* geometry_file_path,
-    const char* tess_control_file_path, const char* tess_eval_file_path)
+GLuint LoadShaders(const char* vertex_file_path,       bool isActiveV,
+                   const char* tess_control_file_path, bool isActiveTC,
+                   const char* tess_eval_file_path,    bool isActiveTE,
+                   const char* geometry_file_path,     bool isActiveG,
+                   const char* fragment_file_path,     bool isActiveF)
 {
+    GLuint VertexShaderID = 0;
+    GLuint TessControlShaderID = 0;
+    GLuint TessEvalShaderID = 0;
+    GLuint GeometryShaderID = 0;
+    GLuint FragmentShaderID = 0;
+    
+    
     //create the shaders
-    GLuint VertexShaderID = CreateShader(GL_VERTEX_SHADER, vertex_file_path);
-    GLuint FragmentShaderID = CreateShader(GL_FRAGMENT_SHADER, fragment_file_path);
-    //GLuint GeometryShaderID = CreateShader(GL_GEOMETRY_SHADER, geometry_file_path);
-    GLuint TessControlShaderID = CreateShader(GL_TESS_CONTROL_SHADER, tess_control_file_path);
-    GLuint TessEvalShaderID = CreateShader(GL_TESS_EVALUATION_SHADER, tess_eval_file_path);
-
+    if(isActiveV)
+        VertexShaderID = CreateShader(GL_VERTEX_SHADER, vertex_file_path);
+    if(isActiveTC)
+        TessControlShaderID = CreateShader(GL_TESS_CONTROL_SHADER, tess_control_file_path);
+    if(isActiveTE)
+        TessEvalShaderID = CreateShader(GL_TESS_EVALUATION_SHADER, tess_eval_file_path);
+    if(isActiveG)
+        GeometryShaderID = CreateShader(GL_GEOMETRY_SHADER, geometry_file_path);
+    if(isActiveF)
+        FragmentShaderID = CreateShader(GL_FRAGMENT_SHADER, fragment_file_path);
     GLint Result = GL_FALSE;
     int InfoLogLength;
 
     //Link the program
     fprintf(stdout, "Linking program\n");
     GLuint ProgramID = glCreateProgram();
-    glAttachShader(ProgramID, VertexShaderID);
-    glAttachShader(ProgramID, FragmentShaderID);
-    //glAttachShader(ProgramID, GeometryShaderID);
-    glAttachShader(ProgramID, TessControlShaderID);
-    glAttachShader(ProgramID, TessEvalShaderID);
+    if(isActiveV)
+        glAttachShader(ProgramID, VertexShaderID);
+    if(isActiveF)
+        glAttachShader(ProgramID, FragmentShaderID);
+    if(isActiveG)
+        glAttachShader(ProgramID, GeometryShaderID);
+    if(isActiveTC)
+        glAttachShader(ProgramID, TessControlShaderID);
+    if(isActiveTE)
+        glAttachShader(ProgramID, TessEvalShaderID);
     glLinkProgram(ProgramID);
  
     // Check the program
@@ -191,11 +214,16 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path,
     glGetProgramInfoLog(ProgramID, InfoLogLength, NULL, &ProgramErrorMessage[0]);
     fprintf(stdout, "%s\n", &ProgramErrorMessage[0]);
  
-    glDeleteShader(VertexShaderID);
-    glDeleteShader(FragmentShaderID);
-    //glDeleteShader(GeometryShaderID);
-    glDeleteShader(TessControlShaderID);
-    glDeleteShader(TessEvalShaderID);
+    if(isActiveV)
+        glDeleteShader(VertexShaderID);
+    if(isActiveTC)
+        glDeleteShader(TessControlShaderID);
+    if(isActiveTE)
+        glDeleteShader(TessEvalShaderID);
+    if(isActiveG)
+        glDeleteShader(GeometryShaderID);
+    if(isActiveF)
+        glDeleteShader(FragmentShaderID);
  
     return ProgramID;
 }

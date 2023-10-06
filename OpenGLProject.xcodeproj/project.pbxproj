@@ -25,6 +25,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		E25ABC8C2ACFAB110028DDDC /* glm */ = {isa = PBXFileReference; lastKnownFileType = folder; path = glm; sourceTree = "<group>"; };
 		E2E280AD2ACEA816006AB8AC /* OpenGLProject */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = OpenGLProject; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2E280B02ACEA816006AB8AC /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
 		E2E280B82ACEA840006AB8AC /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = System/Library/Frameworks/GLUT.framework; sourceTree = SDKROOT; };
@@ -34,7 +35,6 @@
 		E2E280C02ACEAA74006AB8AC /* GeometryShader.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = GeometryShader.txt; sourceTree = "<group>"; };
 		E2E280C12ACEAA74006AB8AC /* TessEvalShader.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = TessEvalShader.txt; sourceTree = "<group>"; };
 		E2E280C22ACEAA74006AB8AC /* VertexShader.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = VertexShader.txt; sourceTree = "<group>"; };
-		E2E280C52ACED9CE006AB8AC /* glm */ = {isa = PBXFileReference; lastKnownFileType = folder; path = glm; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,7 +70,7 @@
 		E2E280AF2ACEA816006AB8AC /* OpenGLProject */ = {
 			isa = PBXGroup;
 			children = (
-				E2E280C52ACED9CE006AB8AC /* glm */,
+				E25ABC8C2ACFAB110028DDDC /* glm */,
 				E2E280BF2ACEAA74006AB8AC /* FragmentShader.txt */,
 				E2E280C02ACEAA74006AB8AC /* GeometryShader.txt */,
 				E2E280BE2ACEAA74006AB8AC /* TessControlShader.txt */,
