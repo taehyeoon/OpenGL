@@ -15,6 +15,7 @@
 #include <OpenGL/gl3.h>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/transform.hpp"
 #endif
 #include <GLut/glut.h>
 
@@ -24,6 +25,12 @@ using namespace glm;
 // Screen
 const int SCREEN_WIDTH = 540;
 const int SCREEN_HEIGHT = 540;
+
+// Camera
+const float CAMERA_SPEED = 0.05f;
+vec3 cameraPos = vec3(0.0f ,0.0f ,3.0f);
+vec3 cameraFront = vec3(0.0f ,0.0f ,-1.0f);
+vec3 cameraUp = vec3(0.0f ,1.0f ,0.0f);
 
 // Tessellation
 const int TESSEL_DELATA = 1;
@@ -40,6 +47,14 @@ bool isInputComplete;
 vector<vec2> controlPoints;
 GLuint programID;
 GLint centerPosLocation;
+
+// Matrix
+GLint mvpMatID;
+mat4 modelMat = mat4(1.0f);
+mat4 viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+mat4 projMat = perspective(radians(45.0f), (float)4/(float)3, 0.1f, 100.0f);;
+mat4 MVPMat = projMat * viewMat * modelMat;
+
 
 // Graphic
 GLuint CreateShader(int shaderType, const char* file_path);
@@ -87,26 +102,37 @@ int main(int argc, char **argv)
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     
     programID = LoadShaders("VertexShader.txt",     true,
-                            "TessControlShader.txt",true,
-                            "TessEvalShader.txt",   true,
+                            "TessControlShader.txt",false,
+                            "TessEvalShader.txt",   false,
                             "GeometryShader.txt",   false,
                             "FragmentShader.txt",   true);
     glUseProgram(programID);
 
+    float points[9] = {
+        -0.2, -0.2, 0.0,
+         0.2, -0.2, 0.0,
+         0.0,  0.5, 0.0
+    };
+    
+    glBufferData(GL_ARRAY_BUFFER, sizeof(points), points, GL_STATIC_DRAW);
+    
     // Position
     glVertexAttribPointer(0, 3,
         GL_FLOAT, GL_FALSE,
         3 * sizeof(float),
         (void*)0);
     glEnableVertexAttribArray(0);
-
-    // Patch data
-    glPatchParameteri(GL_PATCH_VERTICES, 4);
-
-    // Tessellation
-    GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
-    glUniform1i(tesselationID, tessel);
-    cout << "Current Tessellation : " << tessel << endl;
+    
+    /*
+    mat4 scaleMat = scale(vec3(0.5f));
+    mat4 transMat = translate(mat4(1.0f), vec3(0.5f, 0.0f, 0.0f));
+    vec3 rotAxis(0,0,1);
+    mat4 rotMat = rotate(mat4(1.0f), radians(90.0f), rotAxis);
+//    mat4 MVPMat = transMat * rotMat * scaleMat;
+    */
+    
+    mvpMatID = glGetUniformLocation(programID, "u_MVPMat");
+    glUniformMatrix4fv(mvpMatID, 1, false, &MVPMat[0][0]);
     
     glutDisplayFunc(renderScene);
 
@@ -123,11 +149,7 @@ void renderScene(void)
     //Clear all pixels
     glClear(GL_COLOR_BUFFER_BIT);
     
-    if (isInputComplete) {
-        for (int i = 0; i < controlPoints.size() - 3; i++) {
-            glDrawArrays(GL_PATCHES, i, 4);
-        }
-    }
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 
     glutSwapBuffers();
 }
@@ -244,7 +266,7 @@ void init()
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     
     // Mouse, Keyboard input
-    glutMouseFunc(mousePressed);
+//    glutMouseFunc(mousePressed);
     glutKeyboardFunc(keyboardPressed);
 }
 
@@ -294,31 +316,53 @@ void mousePressed(int btn, int state, int x, int y)
 
 void keyboardPressed(unsigned char key, int x, int y)
 {
+    cout << "key pressed : ";
     if (key == 27)
         exit(0);
-
-    if (!isInputComplete) return;
 
     switch (key)
     {
         case 'w':
-            cout << "w key pressed" << endl;
-            tessel += TESSEL_DELATA;
-            if (tessel > TESSEL_MAX) tessel = TESSEL_MAX;
+            cout << "w key" << endl;
+            cameraPos += CAMERA_SPEED * cameraFront;
             break;
+
+        case 'a':
+            cout << "a key" << endl;
+            cameraPos -= normalize(cross(cameraFront, cameraUp)) * CAMERA_SPEED;
+            break;
+            
         case 's':
-            cout << "s key pressed" << endl;
-            tessel -= TESSEL_DELATA;
-            if (tessel < TESSEL_MIN) tessel = TESSEL_MIN;
+            cout << "s key" << endl;
+            cameraPos -= CAMERA_SPEED * cameraFront;
+            break;
+            
+        case 'd':
+            cout << "d key" << endl;
+            cameraPos += normalize(cross(cameraFront, cameraUp)) * CAMERA_SPEED;
+            break;
+            
+        case 'j':
+            cout << "j key" << endl;
+        {
+
+        }
+            break;
+
+        case 'l':
+            cout << "l key" << endl;
+        {
+
+        }
             break;
         default:
             break;
     }
     
-    GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
-    glUniform1i(tesselationID, tessel);
-    cout << "Current Tessellation : " << tessel << endl << endl;
-
+    viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    MVPMat = projMat * viewMat * modelMat;
+    glUniformMatrix4fv(mvpMatID, 1, false, &MVPMat[0][0]);
+    
     glutPostRedisplay();
 }
 
