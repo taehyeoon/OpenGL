@@ -28,6 +28,8 @@ const int SCREEN_HEIGHT = 540;
 
 // Camera
 const float CAMERA_SPEED = 0.05f;
+float yaw = -90.0f;
+float pitch = 0.0f;
 vec3 cameraPos = vec3(0.0f ,0.0f ,3.0f);
 vec3 cameraFront = vec3(0.0f ,0.0f ,-1.0f);
 vec3 cameraUp = vec3(0.0f ,1.0f ,0.0f);
@@ -52,9 +54,14 @@ GLint centerPosLocation;
 GLint mvpMatID;
 mat4 modelMat = mat4(1.0f);
 mat4 viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-mat4 projMat = perspective(radians(45.0f), (float)4/(float)3, 0.1f, 100.0f);;
+mat4 projMat = perspective(radians(45.0f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.0f);;
 mat4 MVPMat = projMat * viewMat * modelMat;
 
+// Mouse
+float const MOUSE_SENSITIVITY = 0.1f;
+bool isFirstMouseInput = true;
+float lastMouseX;
+float lastMouseY;
 
 // Graphic
 GLuint CreateShader(int shaderType, const char* file_path);
@@ -67,6 +74,7 @@ void init();
 void renderScene(void);
 
 // Input
+void mouseDragged(int x, int y);
 void mousePressed(int btn, int state, int x, int y);
 void keyboardPressed(unsigned char key, int x, int y);
 vec2 normalizedPosByLeftTop(int x, int y);
@@ -148,6 +156,10 @@ void renderScene(void)
 {
     //Clear all pixels
     glClear(GL_COLOR_BUFFER_BIT);
+    
+    viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    MVPMat = projMat * viewMat * modelMat;
+    glUniformMatrix4fv(mvpMatID, 1, false, &MVPMat[0][0]);
     
     glDrawArrays(GL_TRIANGLES, 0, 3);
 
@@ -266,12 +278,60 @@ void init()
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     
     // Mouse, Keyboard input
-//    glutMouseFunc(mousePressed);
+    glutMouseFunc(mousePressed);
+    glutMotionFunc(mouseDragged);
     glutKeyboardFunc(keyboardPressed);
 }
 
-void mousePressed(int btn, int state, int x, int y) 
+void mouseDragged(int x, int y)
 {
+    cout << "Mouse drag : " << x  << ", " << y << endl;
+    
+    if(isFirstMouseInput){
+        lastMouseX = x;
+        lastMouseY = y;
+        isFirstMouseInput = false;
+        return;
+    }
+    
+    float xoffset = x - lastMouseX;
+    float yoffset = lastMouseY - y;
+    lastMouseX = x;
+    lastMouseY = y;
+
+    xoffset *= MOUSE_SENSITIVITY;
+    yoffset *= MOUSE_SENSITIVITY;
+
+    yaw   += xoffset;
+    pitch += yoffset;
+
+    if(pitch > 89.0f)
+        pitch = 89.0f;
+    if(pitch < -89.0f)
+        pitch = -89.0f;
+
+    vec3 front;
+    front.x = cos(radians(yaw)) * cos(radians(pitch));
+    front.y = sin(radians(pitch));
+    front.z = sin(radians(yaw)) * cos(radians(pitch));
+    cameraFront = normalize(front);
+    
+    cout << "pos : " << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << endl;
+    cout << "front : " << cameraFront.x << ", " << cameraFront.y << ", " << cameraFront.z << endl;
+    cout << "up : " << cameraUp.x << ", " << cameraUp.y << ", " << cameraUp.z << endl;
+    cout << endl;
+    
+    glutPostRedisplay();
+    
+}
+
+void mousePressed(int btn, int state, int x, int y)
+{
+    if(btn == GLUT_LEFT_BUTTON && state == GLUT_UP){
+        isFirstMouseInput = true;
+    }
+    
+    /*
     // Left click
     if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
         
@@ -312,6 +372,7 @@ void mousePressed(int btn, int state, int x, int y)
             glutPostRedisplay();
         }
     }
+     */
 }
 
 void keyboardPressed(unsigned char key, int x, int y)
@@ -342,6 +403,15 @@ void keyboardPressed(unsigned char key, int x, int y)
             cameraPos += normalize(cross(cameraFront, cameraUp)) * CAMERA_SPEED;
             break;
             
+        case 'q':
+            cout << "q key" << endl;
+            cameraPos -= normalize(cameraUp) * CAMERA_SPEED;
+            break;
+        case 'e':
+            cout << "e key" << endl;
+            cameraPos += normalize(cameraUp) * CAMERA_SPEED;
+            break;
+ 
         case 'j':
             cout << "j key" << endl;
         {
@@ -358,10 +428,6 @@ void keyboardPressed(unsigned char key, int x, int y)
         default:
             break;
     }
-    
-    viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-    MVPMat = projMat * viewMat * modelMat;
-    glUniformMatrix4fv(mvpMatID, 1, false, &MVPMat[0][0]);
     
     glutPostRedisplay();
 }
