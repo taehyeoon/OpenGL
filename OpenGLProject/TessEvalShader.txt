@@ -2,6 +2,8 @@
 
 layout(isolines, equal_spacing) in;
 
+uniform mat4 u_MVPMat;
+
 void main(){
 	float u = gl_TessCoord.x;
 	
@@ -15,5 +17,5 @@ void main(){
 	float b2 = (-3.) * u * u * u +	( 3.) * u * u +	( 3.) * u +	(1.);
 	float b3 = ( 1.) * u * u * u +	( 0.) * u * u +	( 0.) * u +	(0.);
 	
-	gl_Position = ( b0 * pos0 + b1 * pos1 + b2 * pos2 + b3 * pos3 ) / 6.0;
+	gl_Position = u_MVPMat * ( b0 * pos0 + b1 * pos1 + b2 * pos2 + b3 * pos3 ) / 6.0;
 }

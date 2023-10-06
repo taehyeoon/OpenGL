@@ -15,6 +15,7 @@
 #include <OpenGL/gl3.h>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtx/transform.hpp"
 #endif
 #include <GLut/glut.h>
 
@@ -25,21 +26,45 @@ using namespace glm;
 const int SCREEN_WIDTH = 540;
 const int SCREEN_HEIGHT = 540;
 
+// Camera
+const float CAMERA_SPEED = 0.05f;
+float yaw = -90.0f;
+float pitch = 0.0f;
+vec3 cameraPos = vec3(0.0f ,0.0f ,3.0f);
+vec3 cameraFront = vec3(0.0f ,0.0f ,-1.0f);
+vec3 cameraUp = vec3(0.0f ,1.0f ,0.0f);
+
+// Matrix
+GLint mvpMatID;
+mat4 modelMat = mat4(1.0f);
+mat4 viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+mat4 projMat = perspective(radians(45.0f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.0f);
+mat4 MVPMat = projMat * viewMat * modelMat;
+
+// Mouse
+float const MOUSE_SENSITIVITY = 0.1f;
+bool isFirstRightClick = true;
+bool isLeftClicking = false;
+float lastMouseX;
+float lastMouseY;
+
 // Tessellation
+GLuint tesselationID;
 const int TESSEL_DELATA = 1;
 const int TESSEL_MAX = 255;
 const int TESSEL_MIN = 1;
 int tessel = 10;
 
+// Constant value
 const double PI = 3.1415926;
 const int VERTEX_SIZE = 3;
 const int COLOR_SIZE = 4;
 const int ONE_VERTEX_DATA_SIZE = VERTEX_SIZE + COLOR_SIZE;
 
-bool isInputComplete;
+// Program
+bool isLineDrawingStart = false;
 vector<vec2> controlPoints;
 GLuint programID;
-GLint centerPosLocation;
 
 // Graphic
 GLuint CreateShader(int shaderType, const char* file_path);
@@ -52,6 +77,7 @@ void init();
 void renderScene(void);
 
 // Input
+void mouseDragged(int x, int y);
 void mousePressed(int btn, int state, int x, int y);
 void keyboardPressed(unsigned char key, int x, int y);
 vec2 normalizedPosByLeftTop(int x, int y);
@@ -104,9 +130,10 @@ int main(int argc, char **argv)
     glPatchParameteri(GL_PATCH_VERTICES, 4);
 
     // Tessellation
-    GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
-    glUniform1i(tesselationID, tessel);
-    cout << "Current Tessellation : " << tessel << endl;
+    tesselationID = glGetUniformLocation(programID, "u_tessellation");
+    
+    // Matrix
+    mvpMatID = glGetUniformLocation(programID, "u_MVPMat");
     
     glutDisplayFunc(renderScene);
 
@@ -115,7 +142,7 @@ int main(int argc, char **argv)
 
     glDeleteVertexArrays(1, &VAO);
 
-    return 1;
+    return 0;
 }
 
 void renderScene(void)
@@ -123,7 +150,13 @@ void renderScene(void)
     //Clear all pixels
     glClear(GL_COLOR_BUFFER_BIT);
     
-    if (isInputComplete) {
+    viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    MVPMat = projMat * viewMat * modelMat;
+    glUniformMatrix4fv(mvpMatID, 1, false, &MVPMat[0][0]);
+    
+    glUniform1i(tesselationID, tessel);
+    
+    if (isLineDrawingStart) {
         for (int i = 0; i < controlPoints.size() - 3; i++) {
             glDrawArrays(GL_PATCHES, i, 4);
         }
@@ -244,17 +277,78 @@ void init()
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     
     // Mouse, Keyboard input
+    glutMotionFunc(mouseDragged);
     glutMouseFunc(mousePressed);
     glutKeyboardFunc(keyboardPressed);
 }
 
-void mousePressed(int btn, int state, int x, int y) 
+void mouseDragged(int x, int y)
 {
-    // Left click
+    // Left-click prevents you from moving your view
+    if(isLeftClicking) return;
+     
+    // Initialize the previous mouse pointer position to the current mouse position
+    // to prevent sudden change of viewpoint
+    // when moving the field of view for the first time
+    if(isFirstRightClick){
+        lastMouseX = x;
+        lastMouseY = y;
+        isFirstRightClick = false;
+        return;
+    }
+ 
+    cout << "Mouse drag : " << x << ", " << y << endl;
+
+    float xoffset = x - lastMouseX;
+    float yoffset = lastMouseY - y;
+    lastMouseX = x;
+    lastMouseY = y;
+
+    xoffset *= MOUSE_SENSITIVITY;
+    yoffset *= MOUSE_SENSITIVITY;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    if(pitch > 89.0f)
+    pitch = 89.0f;
+    if(pitch < -89.0f)
+    pitch = -89.0f;
+
+    vec3 front;
+    front.x = cos(radians(yaw)) * cos(radians(pitch));
+    front.y = sin(radians(pitch));
+    front.z = sin(radians(yaw)) * cos(radians(pitch));
+    cameraFront = normalize(front);
+
+    cout << "pos : " << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << endl;
+    cout << "front : " << cameraFront.x << ", " << cameraFront.y << ", " << cameraFront.z << endl;
+    cout << "up : " << cameraUp.x << ", " << cameraUp.y << ", " << cameraUp.z << endl;
+    cout << endl;
+
+    glutPostRedisplay();
+
+}
+
+void mousePressed(int btn, int state, int x, int y)
+{
+    // Right click up
+    if(btn == GLUT_RIGHT_BUTTON && state == GLUT_UP){
+        cout << "right click up" << endl;
+        isFirstRightClick = true;
+    }
+
+    if(btn == GLUT_LEFT_BUTTON && state == GLUT_UP){
+        cout << "left click up" << endl;
+        isLeftClicking = false;
+    }
+    
+    // Left click down
     if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        
         cout << "mouse clicked" << endl;
-        //if (isInputComplete) return;
+
+        // If left click is continue, you can't move camera view
+        isLeftClicking = true;
 
         // Normalize clicked position to range[-1,1]
         vec2 normalizedPos = normalizedPosByLeftTop(x, y);
@@ -271,7 +365,7 @@ void mousePressed(int btn, int state, int x, int y)
 
         // Transfer data from cpu to gpu
         if (controlPoints.size() >= 4) {
-            isInputComplete = true;
+            isLineDrawingStart = true;
 
             float* datas = new float[(controlPoints.size() + 1) * VERTEX_SIZE];
             datas[controlPoints.size() * VERTEX_SIZE] = '\0';
@@ -294,29 +388,72 @@ void mousePressed(int btn, int state, int x, int y)
 
 void keyboardPressed(unsigned char key, int x, int y)
 {
-    if (key == 27)
+    // Terminate program
+    if (key == 27){
+        cout << "exit" << endl;
         exit(0);
+    }
 
-    if (!isInputComplete) return;
+    cout << "key pressed : ";
 
+    /// w : move forward
+    /// a : move left
+    /// s : move backward
+    /// d : move right
+    ///
+    /// q : move down
+    /// e : move up
+    ///
+    /// i : increase tessellation level
+    /// k : decrease tessellation level
     switch (key)
     {
         case 'w':
-            cout << "w key pressed" << endl;
+            cout << "w key" << endl;
+            cameraPos += cameraFront * CAMERA_SPEED;
+            break;
+
+        case 'a':
+            cout << "a key" << endl;
+            cameraPos -= normalize(cross(cameraFront, cameraUp)) * CAMERA_SPEED;
+            break;
+
+        case 's':
+            cout << "s key" << endl;
+            cameraPos -= cameraFront * CAMERA_SPEED;
+            break;
+
+        case 'd':
+            cout << "d key" << endl;
+            cameraPos += normalize(cross(cameraFront, cameraUp)) * CAMERA_SPEED;
+            break;
+
+        case 'q':
+            cout << "q key"<< endl;
+            cameraPos -= normalize(cameraUp) * CAMERA_SPEED;
+            break;
+            
+        case 'e':
+            cout << "e key" << endl;
+            cameraPos += normalize(cameraUp) * CAMERA_SPEED;
+            break;
+
+        case 'i':
+            cout << "i key" << endl;
             tessel += TESSEL_DELATA;
             if (tessel > TESSEL_MAX) tessel = TESSEL_MAX;
             break;
-        case 's':
-            cout << "s key pressed" << endl;
+            
+        case 'k':
+            cout << "k key" << endl;
             tessel -= TESSEL_DELATA;
             if (tessel < TESSEL_MIN) tessel = TESSEL_MIN;
             break;
+            
         default:
             break;
     }
     
-    GLuint tesselationID = glGetUniformLocation(programID, "u_tessellation");
-    glUniform1i(tesselationID, tessel);
     cout << "Current Tessellation : " << tessel << endl << endl;
 
     glutPostRedisplay();
