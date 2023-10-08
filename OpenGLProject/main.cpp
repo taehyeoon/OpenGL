@@ -168,10 +168,10 @@ int main(int argc, char **argv)
 
     // Tessellation
     tesselationID = glGetUniformLocation(programID, "u_tessellation");
+     */
     
     // Matrix
     mvpMatID = glGetUniformLocation(programID, "u_MVPMat");
-    */
     
     
     // Texture
@@ -189,12 +189,12 @@ int main(int argc, char **argv)
     stbi_set_flip_vertically_on_load(true);
     
     // Texture1
-    unsigned char* data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
+    unsigned char* data = stbi_load("lenna.png", &width, &height, &nrChannels, 0);
     if(data){
         // 현재 바인딩된 텍스쳐 객체가 첨부된 텍스쳐 이미지를 가지게 됨
         glTexImage2D(GL_TEXTURE_2D,             // 텍스쳐 타겟, GL_TEXURE_2D로 바인딩된 텍스쳐 객체에 텍스쳐를 생성한다는 의미
                      0,                         // 생성하는 텍스쳐의 mipmap 레벨을 수동으로 지정하고 싶을 때 지정, 베이스 레벨은 0
-                     GL_RGB,                    // 저장하고 싶은 텍스쳐가 가져야할 포멧 정보 전달, 여기서는 RGB값 정보만 가지고 있음
+                     GL_RGBA,                    // 저장하고 싶은 텍스쳐가 가져야할 포멧 정보 전달, 여기서는 RGB값 정보만 가지고 있음
                      width, height,             // 텍스쳐의 너비와 높이
                      0,                         // boarder : 항상 0
                      GL_RGB, GL_UNSIGNED_BYTE,  // 원본 이미지의 포멧과 데이터 타입
@@ -252,11 +252,11 @@ void renderScene(void)
     //Clear all pixels
     glClear(GL_COLOR_BUFFER_BIT);
     
-    /*
     viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     MVPMat = projMat * viewMat * modelMat;
     glUniformMatrix4fv(mvpMatID, 1, false, &MVPMat[0][0]);
     
+    /*
     glUniform1i(tesselationID, tessel);
     
     if (isLineDrawingStart) {
@@ -386,9 +386,9 @@ void init()
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     
     // Mouse, Keyboard input
-//    glutMotionFunc(mouseDragged);
-//    glutMouseFunc(mousePressed);
-//    glutKeyboardFunc(keyboardPressed);
+    glutMotionFunc(mouseDragged);
+    glutMouseFunc(mousePressed);
+    glutKeyboardFunc(keyboardPressed);
 }
 
 void mouseDragged(int x, int y)

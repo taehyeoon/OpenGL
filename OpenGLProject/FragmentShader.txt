@@ -11,5 +11,28 @@ uniform sampler2D texture2;
 void main()
 {
     vec3 test = ourColor;
-	color = mix(texture(texture1, texCoord), texture(texture2, texCoord), 0.2);
+    
+    vec2 delta = 1.0 / textureSize(texture1, 0);
+    
+    vec4 c0 = texture(texture1, texCoord);
+    // vec4 c1 = texture(texture1, texCoord + (delta * vec2(-1.0,  0.0)));
+    // vec4 c2 = texture(texture1, texCoord + (delta * vec2( 1.0,  0.0)));
+    // vec4 c3 = texture(texture1, texCoord + (delta * vec2( 0.0, -1.0)));
+    // vec4 c4 = texture(texture1, texCoord + (delta * vec2( 0.0,  1.0)));
+    
+    vec4 c1 = textureOffset(texture1, texCoord, ivec2(-1.0,  0.0));
+    vec4 c2 = textureOffset(texture1, texCoord, ivec2( 1.0,  0.0));
+    vec4 c3 = textureOffset(texture1, texCoord, ivec2( 0.0, -1.0));
+    vec4 c4 = textureOffset(texture1, texCoord, ivec2( 0.0,  1.0));
+    
+    // color = mix(texture(texture1, texCoord), texture(texture2, texCoord), 0.2);
+    // color = texture(texture1,texCoord);
+    
+    // Negative
+    color = 1 - texture(texture1,texCoord);
+    
+    // Blur
+    // color = (c0 + c1 + c2 + c3 + c4) * 0.2;
+    
+    color.a = 1.0;
 }

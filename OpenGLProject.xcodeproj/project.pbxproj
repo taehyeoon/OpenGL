@@ -28,6 +28,7 @@
 		E2071D062AD2381300E46712 /* stb_image.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = stb_image.h; sourceTree = "<group>"; };
 		E2071D082AD2397800E46712 /* container.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = container.jpg; sourceTree = "<group>"; };
 		E2071D092AD25E0A00E46712 /* awesomeface.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = awesomeface.png; sourceTree = "<group>"; };
+		E2071D0A2AD2721600E46712 /* lenna.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = lenna.png; sourceTree = "<group>"; };
 		E25ABC8C2ACFAB110028DDDC /* glm */ = {isa = PBXFileReference; lastKnownFileType = folder; path = glm; sourceTree = "<group>"; };
 		E2E280AD2ACEA816006AB8AC /* OpenGLProject */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = OpenGLProject; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2E280B02ACEA816006AB8AC /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
@@ -73,6 +74,7 @@
 		E2E280AF2ACEA816006AB8AC /* OpenGLProject */ = {
 			isa = PBXGroup;
 			children = (
+				E2071D0A2AD2721600E46712 /* lenna.png */,
 				E2071D092AD25E0A00E46712 /* awesomeface.png */,
 				E2071D082AD2397800E46712 /* container.jpg */,
 				E2071D062AD2381300E46712 /* stb_image.h */,
