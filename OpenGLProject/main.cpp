@@ -68,6 +68,7 @@ const double PI = 3.1415926;
 const int VERTEX_SIZE = 3;
 const int COLOR_SIZE = 4;
 const int ONE_VERTEX_DATA_SIZE = VERTEX_SIZE + COLOR_SIZE;
+const int FPS = 120;
 
 // Program
 bool isLineDrawingStart = false;
@@ -82,6 +83,8 @@ mat3 kernel = mat3(0,0,0,
 float kernelSum = 1.0f;
 bool isNegative = false;
 
+// keyBoard
+bool isWASDQE[6];
 
 // Graphic
 GLuint CreateShader(int shaderType, const char* file_path);
@@ -95,10 +98,13 @@ void renderScene(void);
 
 // Input
 void mouseDragged(int x, int y);
-void mousePressed(int btn, int state, int x, int y);
-void keyboardPressed(unsigned char key, int x, int y);
+void mouseDown(int btn, int state, int x, int y);
+void keyboardDown(unsigned char key, int x, int y);
+void keyboardUp(unsigned char key, int x, int y);
 vec2 normalizedPosByLeftTop(int x, int y);
 void doMenu(int value);
+void doTimer(int value);
+
 
 int main(int argc, char **argv)
 {
@@ -217,7 +223,8 @@ int main(int argc, char **argv)
     // Set uniform attribute id in fragment shader
     glUniform1i(glGetUniformLocation(programID, "texture1"), 0);
     
-    
+    // Timer
+    glutTimerFunc(1000.0f / FPS, doTimer, 1);
     
     // Render
     glutDisplayFunc(renderScene);
@@ -367,8 +374,9 @@ void init()
     
     // Mouse, Keyboard input
     glutMotionFunc(mouseDragged);
-    glutMouseFunc(mousePressed);
-    glutKeyboardFunc(keyboardPressed);
+    glutMouseFunc(mouseDown);
+    glutKeyboardFunc(keyboardDown);
+    glutKeyboardUpFunc(keyboardUp);
 }
 
 void mouseDragged(int x, int y)
@@ -407,11 +415,9 @@ void mouseDragged(int x, int y)
     front.y = sin(radians(pitchValue));
     front.z = sin(radians(yawValue)) * cos(radians(pitchValue));
     cameraFront = normalize(front);
-
-    glutPostRedisplay();
 }
 
-void mousePressed(int btn, int state, int x, int y)
+void mouseDown(int btn, int state, int x, int y)
 {
     // Right click up
     if(btn == GLUT_RIGHT_BUTTON && state == GLUT_UP){
@@ -433,15 +439,13 @@ void mousePressed(int btn, int state, int x, int y)
     }
 }
 
-void keyboardPressed(unsigned char key, int x, int y)
+void keyboardDown(unsigned char key, int x, int y)
 {
     // Terminate program
     if (key == 27){
         cout << "exit" << endl;
         exit(0);
     }
-
-    cout << "key pressed : ";
 
     /// w : move forward
     /// a : move left
@@ -455,36 +459,12 @@ void keyboardPressed(unsigned char key, int x, int y)
     /// k : decrease tessellation level
     switch (key)
     {
-        case 'w':
-            cout << "w key" << endl;
-            cameraPos += cameraFront * CAMERA_SPEED;
-            break;
-
-        case 'a':
-            cout << "a key" << endl;
-            cameraPos -= normalize(cross(cameraFront, cameraUp)) * CAMERA_SPEED;
-            break;
-
-        case 's':
-            cout << "s key" << endl;
-            cameraPos -= cameraFront * CAMERA_SPEED;
-            break;
-
-        case 'd':
-            cout << "d key" << endl;
-            cameraPos += normalize(cross(cameraFront, cameraUp)) * CAMERA_SPEED;
-            break;
-
-        case 'q':
-            cout << "q key"<< endl;
-            cameraPos -= normalize(cameraUp) * CAMERA_SPEED;
-            break;
-            
-        case 'e':
-            cout << "e key" << endl;
-            cameraPos += normalize(cameraUp) * CAMERA_SPEED;
-            break;
-
+        case 'w': isWASDQE[0] = true; break;
+        case 'a': isWASDQE[1] = true; break;
+        case 's': isWASDQE[2] = true; break;
+        case 'd': isWASDQE[3] = true; break;
+        case 'q': isWASDQE[4] = true; break;
+        case 'e': isWASDQE[5] = true; break;
         case 'i':
             cout << "i key" << endl;
             tessel += TESSEL_DELATA;
@@ -502,8 +482,21 @@ void keyboardPressed(unsigned char key, int x, int y)
         default:
             break;
     }
+}
 
-    glutPostRedisplay();
+void keyboardUp(unsigned char key, int x, int y)
+{
+    switch (key) {
+        case 'w': isWASDQE[0] = false; break;
+        case 'a': isWASDQE[1] = false; break;
+        case 's': isWASDQE[2] = false; break;
+        case 'd': isWASDQE[3] = false; break;
+        case 'q': isWASDQE[4] = false; break;
+        case 'e': isWASDQE[5] = false; break;
+            
+        default:
+            break;
+    }
 }
 
 vec2 normalizedPosByLeftTop(int x, int y)
@@ -578,6 +571,17 @@ void doMenu(int value){
     
     // Prevent kernel sum is zero
     kernelSum = (kernelSum <= 0) ? 1 : kernelSum;
+}
 
+void doTimer(int value){
+    
+    if(isWASDQE[0]) cameraPos += cameraFront * CAMERA_SPEED; // w
+    if(isWASDQE[1]) cameraPos -= normalize(cross(cameraFront, cameraUp)) * CAMERA_SPEED; // a
+    if(isWASDQE[2]) cameraPos -= cameraFront * CAMERA_SPEED; // s
+    if(isWASDQE[3]) cameraPos += normalize(cross(cameraFront, cameraUp)) * CAMERA_SPEED; // d
+    if(isWASDQE[4]) cameraPos -= normalize(cameraUp) * CAMERA_SPEED; // q
+    if(isWASDQE[5]) cameraPos += normalize(cameraUp) * CAMERA_SPEED; // e
+    
     glutPostRedisplay();
+    glutTimerFunc(1000.0/FPS, doTimer, 1);
 }
