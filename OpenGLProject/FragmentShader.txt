@@ -14,12 +14,19 @@ void main()
     
     vec2 delta = 1.0 / textureSize(texture1, 0);
     
-    vec4 c0 = texture(texture1, texCoord);
-    // vec4 c1 = texture(texture1, texCoord + (delta * vec2(-1.0,  0.0)));
-    // vec4 c2 = texture(texture1, texCoord + (delta * vec2( 1.0,  0.0)));
-    // vec4 c3 = texture(texture1, texCoord + (delta * vec2( 0.0, -1.0)));
-    // vec4 c4 = texture(texture1, texCoord + (delta * vec2( 0.0,  1.0)));
+    vec4 coord_l_u = texture(texture1, texCoord + (delta * vec2(-1.0,  1.0))) * 0;
+    vec4 coord_c_u = texture(texture1, texCoord + (delta * vec2( 0.0,  1.0))) * -1;
+    vec4 coord_r_u = texture(texture1, texCoord + (delta * vec2( 1.0,  1.0))) * 0;
     
+    vec4 coord_l_c = texture(texture1, texCoord + (delta * vec2(-1.0,  0.0))) * -1;
+    vec4 coord_c_c = texture(texture1, texCoord + (delta * vec2( 0.0,  0.0))) * 4;
+    vec4 coord_r_c = texture(texture1, texCoord + (delta * vec2( 1.0,  0.0))) * -1;
+    
+    vec4 coord_l_d = texture(texture1, texCoord + (delta * vec2(-1.0, -1.0))) * 0; // left, down
+    vec4 coord_c_d = texture(texture1, texCoord + (delta * vec2( 0.0, -1.0))) * -1; // center, down
+    vec4 coord_r_d = texture(texture1, texCoord + (delta * vec2( 1.0, -1.0))) * 0; // right, down
+    
+    vec4 c0 = textureOffset(texture1, texCoord, ivec2( 0.0,  0.0));
     vec4 c1 = textureOffset(texture1, texCoord, ivec2(-1.0,  0.0));
     vec4 c2 = textureOffset(texture1, texCoord, ivec2( 1.0,  0.0));
     vec4 c3 = textureOffset(texture1, texCoord, ivec2( 0.0, -1.0));
@@ -29,10 +36,15 @@ void main()
     // color = texture(texture1,texCoord);
     
     // Negative
-    color = 1 - texture(texture1,texCoord);
+    // color = 1 - texture(texture1,texCoord);
     
     // Blur
     // color = (c0 + c1 + c2 + c3 + c4) * 0.2;
     
+    // Edge
+    color = (coord_l_u + coord_c_u + coord_r_u +
+             coord_l_c + coord_c_c + coord_r_c +
+             coord_l_d + coord_c_d + coord_r_d);
+
     color.a = 1.0;
 }
