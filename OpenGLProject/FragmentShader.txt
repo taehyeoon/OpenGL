@@ -1,50 +1,37 @@
 #version 400 core
 
-in vec3 ourColor;
 in vec2 texCoord;
 
 out vec4 color;
 
+uniform mat3 u_kernel;
+uniform float u_kernel_sum;
+uniform bool u_isNegative;
+
 uniform sampler2D texture1;
-uniform sampler2D texture2;
 
 void main()
 {
-    vec3 test = ourColor;
-    
     vec2 delta = 1.0 / textureSize(texture1, 0);
     
-    vec4 coord_l_u = texture(texture1, texCoord + (delta * vec2(-1.0,  1.0))) * 0;
-    vec4 coord_c_u = texture(texture1, texCoord + (delta * vec2( 0.0,  1.0))) * -1;
-    vec4 coord_r_u = texture(texture1, texCoord + (delta * vec2( 1.0,  1.0))) * 0;
+    vec4 coord_l_u = texture(texture1, texCoord + (delta * vec2(-1.0,  1.0))) * u_kernel[0][0]; // left, up
+    vec4 coord_c_u = texture(texture1, texCoord + (delta * vec2( 0.0,  1.0))) * u_kernel[1][0]; // center, up
+    vec4 coord_r_u = texture(texture1, texCoord + (delta * vec2( 1.0,  1.0))) * u_kernel[2][0]; // right, up
     
-    vec4 coord_l_c = texture(texture1, texCoord + (delta * vec2(-1.0,  0.0))) * -1;
-    vec4 coord_c_c = texture(texture1, texCoord + (delta * vec2( 0.0,  0.0))) * 4;
-    vec4 coord_r_c = texture(texture1, texCoord + (delta * vec2( 1.0,  0.0))) * -1;
+    vec4 coord_l_c = texture(texture1, texCoord + (delta * vec2(-1.0,  0.0))) * u_kernel[0][1]; // left, center
+    vec4 coord_c_c = texture(texture1, texCoord + (delta * vec2( 0.0,  0.0))) * u_kernel[1][1]; // center, center
+    vec4 coord_r_c = texture(texture1, texCoord + (delta * vec2( 1.0,  0.0))) * u_kernel[2][1]; // right, center
     
-    vec4 coord_l_d = texture(texture1, texCoord + (delta * vec2(-1.0, -1.0))) * 0; // left, down
-    vec4 coord_c_d = texture(texture1, texCoord + (delta * vec2( 0.0, -1.0))) * -1; // center, down
-    vec4 coord_r_d = texture(texture1, texCoord + (delta * vec2( 1.0, -1.0))) * 0; // right, down
+    vec4 coord_l_d = texture(texture1, texCoord + (delta * vec2(-1.0, -1.0))) * u_kernel[0][2]; // left, down
+    vec4 coord_c_d = texture(texture1, texCoord + (delta * vec2( 0.0, -1.0))) * u_kernel[1][2]; // center, down
+    vec4 coord_r_d = texture(texture1, texCoord + (delta * vec2( 1.0, -1.0))) * u_kernel[2][2]; // right, down
     
-    vec4 c0 = textureOffset(texture1, texCoord, ivec2( 0.0,  0.0));
-    vec4 c1 = textureOffset(texture1, texCoord, ivec2(-1.0,  0.0));
-    vec4 c2 = textureOffset(texture1, texCoord, ivec2( 1.0,  0.0));
-    vec4 c3 = textureOffset(texture1, texCoord, ivec2( 0.0, -1.0));
-    vec4 c4 = textureOffset(texture1, texCoord, ivec2( 0.0,  1.0));
-    
-    // color = mix(texture(texture1, texCoord), texture(texture2, texCoord), 0.2);
-    // color = texture(texture1,texCoord);
-    
-    // Negative
-    // color = 1 - texture(texture1,texCoord);
-    
-    // Blur
-    // color = (c0 + c1 + c2 + c3 + c4) * 0.2;
-    
-    // Edge
     color = (coord_l_u + coord_c_u + coord_r_u +
              coord_l_c + coord_c_c + coord_r_c +
-             coord_l_d + coord_c_d + coord_r_d);
+             coord_l_d + coord_c_d + coord_r_d) / u_kernel_sum;
 
+    if(u_isNegative)
+        color = vec4(1.0) - color;
+        
     color.a = 1.0;
 }

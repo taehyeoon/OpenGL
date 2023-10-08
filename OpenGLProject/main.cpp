@@ -19,6 +19,7 @@
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
 #endif
 #include <GLut/glut.h>
 
@@ -35,8 +36,8 @@ const int SCREEN_HEIGHT = 540;
 
 // Camera
 const float CAMERA_SPEED = 0.05f;
-float yaw = -90.0f;
-float pitch = 0.0f;
+float yawValue = -90.0f;
+float pitchValue = 0.0f;
 vec3 cameraPos = vec3(0.0f ,0.0f ,3.0f);
 vec3 cameraFront = vec3(0.0f ,0.0f ,-1.0f);
 vec3 cameraUp = vec3(0.0f ,1.0f ,0.0f);
@@ -74,7 +75,13 @@ vector<vec2> controlPoints;
 GLuint programID;
 
 // Texture
-GLuint texture1, texture2;
+GLuint texture1;
+mat3 kernel = mat3(0,0,0,
+                   0,1,0,
+                   0,0,0);
+float kernelSum = 1.0f;
+bool isNegative = false;
+
 
 // Graphic
 GLuint CreateShader(int shaderType, const char* file_path);
@@ -91,6 +98,7 @@ void mouseDragged(int x, int y);
 void mousePressed(int btn, int state, int x, int y);
 void keyboardPressed(unsigned char key, int x, int y);
 vec2 normalizedPosByLeftTop(int x, int y);
+void doMenu(int value);
 
 int main(int argc, char **argv)
 {
@@ -130,13 +138,13 @@ int main(int argc, char **argv)
     glUseProgram(programID);
 
     float vertices[] = {
-         // 위치              // 컬러             // 텍스처 좌표
-        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,    // 좌측 상단
-        0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // 우측 상단
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 좌측 하단
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 좌측 하단
-        0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // 우측 상단
-        0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 우측 하단
+         // 위치                // 텍스처 좌표
+        -0.5f,  0.5f, 0.0f,  0.0f, 1.0f,   // 좌측 상단
+         0.5f,  0.5f, 0.0f,  1.0f, 1.0f,   // 우측 상단
+        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f,   // 좌측 하단
+        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f,   // 좌측 하단
+         0.5f,  0.5f, 0.0f,  1.0f, 1.0f,   // 우측 상단
+         0.5f, -0.5f, 0.0f,  1.0f, 0.0f,   // 우측 하단
     };
     
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -144,34 +152,35 @@ int main(int argc, char **argv)
     // Position
     glVertexAttribPointer(0, 3,
                           GL_FLOAT, GL_FALSE,
-                          8 * sizeof(float),
+                          5 * sizeof(float),
                           (void*)0);
     glEnableVertexAttribArray(0);
     
-    // Color
-    glVertexAttribPointer(1, 3,
+    // Texture
+    glVertexAttribPointer(1, 2,
                           GL_FLOAT, GL_FALSE,
-                          8 * sizeof(float),
+                          5 * sizeof(float),
                           (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
     
-    // Texture
-    glVertexAttribPointer(2, 2,
-                          GL_FLOAT, GL_FALSE,
-                          8 * sizeof(float),
-                          (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-
-    /*
-    // Patch data
-    glPatchParameteri(GL_PATCH_VERTICES, 4);
-
-    // Tessellation
-    tesselationID = glGetUniformLocation(programID, "u_tessellation");
-     */
-    
     // Matrix
     mvpMatID = glGetUniformLocation(programID, "u_MVPMat");
+    
+    // Menu
+    GLint subMenu = glutCreateMenu(doMenu);
+    glutAddMenuEntry("cross", 3);
+    glutAddMenuEntry("horizontal", 4);
+    glutAddMenuEntry("vertical", 5);
+
+    glutCreateMenu(doMenu);
+    glutAddMenuEntry("identity", 0);
+    glutAddMenuEntry("mean", 1);
+    glutAddMenuEntry("sharpen", 2);
+    glutAddMenuEntry("negative", -1);
+    
+    // Attach subMenu
+    glutAddSubMenu("edge", subMenu);
+    glutAttachMenu(GLUT_MIDDLE_BUTTON);
     
     
     // Texture
@@ -205,35 +214,9 @@ int main(int argc, char **argv)
     }
     stbi_image_free(data);
     
-    // Texture 2
-    glGenTextures(1, &texture2);
-    glBindTexture(GL_TEXTURE_2D, texture2);
-    
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    data = stbi_load("awesomeface.png", &width, &height, &nrChannels, 0);
-    if(data){
-        // 현재 바인딩된 텍스쳐 객체가 첨부된 텍스쳐 이미지를 가지게 됨
-        glTexImage2D(GL_TEXTURE_2D,             // 텍스쳐 타겟, GL_TEXURE_2D로 바인딩된 텍스쳐 객체에 텍스쳐를 생성한다는 의미
-                     0,                         // 생성하는 텍스쳐의 mipmap 레벨을 수동으로 지정하고 싶을 때 지정, 베이스 레벨은 0
-                     GL_RGBA,                    // 저장하고 싶은 텍스쳐가 가져야할 포멧 정보 전달, 여기서는 RGB값 정보만 가지고 있음
-                     width, height,             // 텍스쳐의 너비와 높이
-                     0,                         // boarder : 항상 0
-                     GL_RGBA, GL_UNSIGNED_BYTE, // 원본 이미지의 포멧과 데이터 타입
-                     data);                     // 실제 데이터
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }else{
-        cout << "Failed to load texture" << endl;
-    }
-    
-    stbi_image_free(data);
-    
     // Set uniform attribute id in fragment shader
     glUniform1i(glGetUniformLocation(programID, "texture1"), 0);
-    glUniform1i(glGetUniformLocation(programID, "texture2"), 1);
+    
     
     
     // Render
@@ -251,24 +234,21 @@ void renderScene(void)
 {
     //Clear all pixels
     glClear(GL_COLOR_BUFFER_BIT);
-    
+
+    // MVP Matrix
     viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     MVPMat = projMat * viewMat * modelMat;
-    glUniformMatrix4fv(mvpMatID, 1, false, &MVPMat[0][0]);
+    glUniformMatrix4fv(mvpMatID, 1, false, value_ptr(MVPMat));
     
-    /*
-    glUniform1i(tesselationID, tessel);
+    // Texture kernel data
+    glUniformMatrix3fv(glGetUniformLocation(programID, "u_kernel"), 1, false, value_ptr(kernel));
+    glUniform1f(glGetUniformLocation(programID, "u_kernel_sum"), kernelSum);
     
-    if (isLineDrawingStart) {
-        for (int i = 0; i < controlPoints.size() - 3; i++) {
-            glDrawArrays(GL_PATCHES, i, 4);
-        }
-    }
-     */
+    // Texture negative data
+    glUniform1f(glGetUniformLocation(programID, "u_isNegative"), isNegative);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture1);
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, texture2);
     
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -406,8 +386,6 @@ void mouseDragged(int x, int y)
         return;
     }
  
-    cout << "Mouse drag : " << x << ", " << y << endl;
-
     float xoffset = x - lastMouseX;
     float yoffset = lastMouseY - y;
     lastMouseX = x;
@@ -416,27 +394,21 @@ void mouseDragged(int x, int y)
     xoffset *= MOUSE_SENSITIVITY;
     yoffset *= MOUSE_SENSITIVITY;
 
-    yaw += xoffset;
-    pitch += yoffset;
+    yawValue += xoffset;
+    pitchValue += yoffset;
 
-    if(pitch > 89.0f)
-    pitch = 89.0f;
-    if(pitch < -89.0f)
-    pitch = -89.0f;
+    if(pitchValue > 89.0f)
+        pitchValue = 89.0f;
+    if(pitchValue < -89.0f)
+        pitchValue = -89.0f;
 
     vec3 front;
-    front.x = cos(radians(yaw)) * cos(radians(pitch));
-    front.y = sin(radians(pitch));
-    front.z = sin(radians(yaw)) * cos(radians(pitch));
+    front.x = cos(radians(yawValue)) * cos(radians(pitchValue));
+    front.y = sin(radians(pitchValue));
+    front.z = sin(radians(yawValue)) * cos(radians(pitchValue));
     cameraFront = normalize(front);
 
-    cout << "pos : " << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << endl;
-    cout << "front : " << cameraFront.x << ", " << cameraFront.y << ", " << cameraFront.z << endl;
-    cout << "up : " << cameraUp.x << ", " << cameraUp.y << ", " << cameraUp.z << endl;
-    cout << endl;
-
     glutPostRedisplay();
-
 }
 
 void mousePressed(int btn, int state, int x, int y)
@@ -454,44 +426,10 @@ void mousePressed(int btn, int state, int x, int y)
     
     // Left click down
     if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        cout << "mouse clicked" << endl;
+        cout << "left click down" << endl;
 
         // If left click is continue, you can't move camera view
         isLeftClicking = true;
-
-        // Normalize clicked position to range[-1,1]
-        vec2 normalizedPos = normalizedPosByLeftTop(x, y);
-        
-        // Add control point
-        controlPoints.push_back(normalizedPos);
-        cout << "Add control point" << endl;
-
-        // show current control points
-        for (unsigned int i = 0; i < controlPoints.size(); i++) {
-            cout << "(" << controlPoints[i].x << " , " << controlPoints[i].y << ")" << endl;
-        }
-        cout << endl;
-
-        // Transfer data from cpu to gpu
-        if (controlPoints.size() >= 4) {
-            isLineDrawingStart = true;
-
-            float* datas = new float[(controlPoints.size() + 1) * VERTEX_SIZE];
-            datas[controlPoints.size() * VERTEX_SIZE] = '\0';
-            datas[controlPoints.size() * VERTEX_SIZE + 1] = '\0';
-            datas[controlPoints.size() * VERTEX_SIZE + 2] = '\0';
-
-            for (unsigned int i = 0; i < controlPoints.size(); i++) {
-                datas[3 * i] = controlPoints.at(i).x;
-                datas[3 * i + 1] = controlPoints.at(i).y;
-                datas[3 * i + 2] = 0;
-            }
-
-            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * controlPoints.size() * VERTEX_SIZE, datas, GL_STATIC_DRAW);
-            delete[] datas;
-            
-            glutPostRedisplay();
-        }
     }
 }
 
@@ -551,19 +489,19 @@ void keyboardPressed(unsigned char key, int x, int y)
             cout << "i key" << endl;
             tessel += TESSEL_DELATA;
             if (tessel > TESSEL_MAX) tessel = TESSEL_MAX;
+            cout << "Current Tessellation : " << tessel << endl << endl;
             break;
             
         case 'k':
             cout << "k key" << endl;
             tessel -= TESSEL_DELATA;
             if (tessel < TESSEL_MIN) tessel = TESSEL_MIN;
+            cout << "Current Tessellation : " << tessel << endl << endl;
             break;
             
         default:
             break;
     }
-    
-    cout << "Current Tessellation : " << tessel << endl << endl;
 
     glutPostRedisplay();
 }
@@ -577,4 +515,69 @@ vec2 normalizedPosByLeftTop(int x, int y)
     cout << "Normalize : (" << x << " , " << y << ") -> ("
                         << result.x << " , " << result.y << ")" << endl;
     return result;
+}
+
+void doMenu(int value){
+    switch (value) {
+        case 0:
+            // Identity
+            kernel = mat3(0,0,0,
+                          0,1,0,
+                          0,0,0);
+            break;
+        
+            
+        case 1:
+            // Mean
+            kernel = mat3(1,1,1,
+                          1,1,1,
+                          1,1,1);
+            break;
+            
+        case 2:
+            // Sharpen
+            kernel = mat3(0,-1,0,
+                          -1,5,-1,
+                          0,-1,0);
+            break;
+
+        case 3:
+            // Cross
+            kernel = mat3(-1,-1,-1,
+                          -1,8,-1,
+                          -1,-1,-1);
+            break;
+
+        case 4:
+            // Horizontal
+            kernel = mat3(1,0,-1,
+                          2,0,-2,
+                          1,0,-1);
+            break;
+
+        case 5:
+            // Vertical
+            kernel = mat3(1,2,1,
+                          0,0,0,
+                          -1,-2,-1);
+            break;
+
+        case -1:
+            isNegative = !isNegative;
+            
+        default:
+            break;
+    }
+    
+    kernelSum = 0;
+    for(int i = 0; i< 3; i++){
+        for(int j = 0; j<3; j++){
+            kernelSum += kernel[i][j];
+        }
+    }
+    
+    // Prevent kernel sum is zero
+    kernelSum = (kernelSum <= 0) ? 1 : kernelSum;
+
+    glutPostRedisplay();
 }
