@@ -46,7 +46,7 @@ vec3 cameraUp = vec3(0.0f ,1.0f ,0.0f);
 GLint mvpMatID;
 mat4 modelMat = mat4(1.0f);
 mat4 viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-mat4 projMat = perspective(radians(45.0f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.0f);
+mat4 projMat = perspective(radians(45.0f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.0001f, 100.0f);
 mat4 MVPMat = projMat * viewMat * modelMat;
 
 // Mouse
@@ -571,6 +571,8 @@ void doMenu(int value){
     
     // Prevent kernel sum is zero
     kernelSum = (kernelSum <= 0) ? 1 : kernelSum;
+    
+    glutPostRedisplay();
 }
 
 void doTimer(int value){
