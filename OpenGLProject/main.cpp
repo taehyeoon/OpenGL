@@ -73,6 +73,9 @@ bool isLineDrawingStart = false;
 vector<vec2> controlPoints;
 GLuint programID;
 
+// Texture
+GLuint texture1, texture2;
+
 // Graphic
 GLuint CreateShader(int shaderType, const char* file_path);
 GLuint LoadShaders(const char* vertex_file_path,       bool isActiveV,
@@ -171,11 +174,9 @@ int main(int argc, char **argv)
     */
     
     
-    
     // Texture
-    GLuint textureID;
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
+    glGenTextures(1, &texture1);
+    glBindTexture(GL_TEXTURE_2D, texture1);
     
     // 현재 바인딩된 텍스쳐 객체에 대해 wrapping, filtering 옵션 설정
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -185,8 +186,10 @@ int main(int argc, char **argv)
     
     // 텍스쳐 로드 및 생성
     int width, height, nrChannels;
-    unsigned char* data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
+    stbi_set_flip_vertically_on_load(true);
     
+    // Texture1
+    unsigned char* data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
     if(data){
         // 현재 바인딩된 텍스쳐 객체가 첨부된 텍스쳐 이미지를 가지게 됨
         glTexImage2D(GL_TEXTURE_2D,             // 텍스쳐 타겟, GL_TEXURE_2D로 바인딩된 텍스쳐 객체에 텍스쳐를 생성한다는 의미
@@ -200,18 +203,37 @@ int main(int argc, char **argv)
     }else{
         cout << "Failed to load texture" << endl;
     }
+    stbi_image_free(data);
+    
+    // Texture 2
+    glGenTextures(1, &texture2);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    data = stbi_load("awesomeface.png", &width, &height, &nrChannels, 0);
+    if(data){
+        // 현재 바인딩된 텍스쳐 객체가 첨부된 텍스쳐 이미지를 가지게 됨
+        glTexImage2D(GL_TEXTURE_2D,             // 텍스쳐 타겟, GL_TEXURE_2D로 바인딩된 텍스쳐 객체에 텍스쳐를 생성한다는 의미
+                     0,                         // 생성하는 텍스쳐의 mipmap 레벨을 수동으로 지정하고 싶을 때 지정, 베이스 레벨은 0
+                     GL_RGBA,                    // 저장하고 싶은 텍스쳐가 가져야할 포멧 정보 전달, 여기서는 RGB값 정보만 가지고 있음
+                     width, height,             // 텍스쳐의 너비와 높이
+                     0,                         // boarder : 항상 0
+                     GL_RGBA, GL_UNSIGNED_BYTE, // 원본 이미지의 포멧과 데이터 타입
+                     data);                     // 실제 데이터
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }else{
+        cout << "Failed to load texture" << endl;
+    }
     
     stbi_image_free(data);
     
-    // Transfer sample2D texture to Fragment shader as sampler2D
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    glBindVertexArray(VAO);
-    
-    
-    
-    
-    
-    
+    // Set uniform attribute id in fragment shader
+    glUniform1i(glGetUniformLocation(programID, "texture1"), 0);
+    glUniform1i(glGetUniformLocation(programID, "texture2"), 1);
     
     
     // Render
@@ -243,6 +265,10 @@ void renderScene(void)
         }
     }
      */
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture2);
     
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
@@ -293,7 +319,6 @@ GLuint LoadShaders(const char* vertex_file_path,       bool isActiveV,
     GLuint TessEvalShaderID = 0;
     GLuint GeometryShaderID = 0;
     GLuint FragmentShaderID = 0;
-    
     
     //create the shaders
     if(isActiveV)
