@@ -1,3 +1,6 @@
+#define STB_IMAGE_IMPLEMENTATION
+#define GL_SILENCE_DEPRECATION
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -7,17 +10,21 @@
 #include <list>
 #include <cmath>
 #include <random>
+#include "stb_image.h"
 
 #ifdef WINDOWS
 #include <GL/glew.h>
 #else
-#define GL_SILENCE_DEPRECATION
 #include <OpenGL/gl3.h>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
 #endif
 #include <GLut/glut.h>
+
+
+
+
 
 using namespace std;
 using namespace glm;
@@ -113,19 +120,46 @@ int main(int argc, char **argv)
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     
     programID = LoadShaders("VertexShader.txt",     true,
-                            "TessControlShader.txt",true,
-                            "TessEvalShader.txt",   true,
+                            "TessControlShader.txt",false,
+                            "TessEvalShader.txt",   false,
                             "GeometryShader.txt",   false,
                             "FragmentShader.txt",   true);
     glUseProgram(programID);
 
+    float vertices[] = {
+         // 위치              // 컬러             // 텍스처 좌표
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f,    // 좌측 상단
+        0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // 우측 상단
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 좌측 하단
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 좌측 하단
+        0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // 우측 상단
+        0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // 우측 하단
+    };
+    
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    
     // Position
     glVertexAttribPointer(0, 3,
-        GL_FLOAT, GL_FALSE,
-        3 * sizeof(float),
-        (void*)0);
+                          GL_FLOAT, GL_FALSE,
+                          8 * sizeof(float),
+                          (void*)0);
     glEnableVertexAttribArray(0);
+    
+    // Color
+    glVertexAttribPointer(1, 3,
+                          GL_FLOAT, GL_FALSE,
+                          8 * sizeof(float),
+                          (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    
+    // Texture
+    glVertexAttribPointer(2, 2,
+                          GL_FLOAT, GL_FALSE,
+                          8 * sizeof(float),
+                          (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
+    /*
     // Patch data
     glPatchParameteri(GL_PATCH_VERTICES, 4);
 
@@ -134,7 +168,53 @@ int main(int argc, char **argv)
     
     // Matrix
     mvpMatID = glGetUniformLocation(programID, "u_MVPMat");
+    */
     
+    
+    
+    // Texture
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    
+    // 현재 바인딩된 텍스쳐 객체에 대해 wrapping, filtering 옵션 설정
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    
+    // 텍스쳐 로드 및 생성
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
+    
+    if(data){
+        // 현재 바인딩된 텍스쳐 객체가 첨부된 텍스쳐 이미지를 가지게 됨
+        glTexImage2D(GL_TEXTURE_2D,             // 텍스쳐 타겟, GL_TEXURE_2D로 바인딩된 텍스쳐 객체에 텍스쳐를 생성한다는 의미
+                     0,                         // 생성하는 텍스쳐의 mipmap 레벨을 수동으로 지정하고 싶을 때 지정, 베이스 레벨은 0
+                     GL_RGB,                    // 저장하고 싶은 텍스쳐가 가져야할 포멧 정보 전달, 여기서는 RGB값 정보만 가지고 있음
+                     width, height,             // 텍스쳐의 너비와 높이
+                     0,                         // boarder : 항상 0
+                     GL_RGB, GL_UNSIGNED_BYTE,  // 원본 이미지의 포멧과 데이터 타입
+                     data);                     // 실제 데이터
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }else{
+        cout << "Failed to load texture" << endl;
+    }
+    
+    stbi_image_free(data);
+    
+    // Transfer sample2D texture to Fragment shader as sampler2D
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    glBindVertexArray(VAO);
+    
+    
+    
+    
+    
+    
+    
+    
+    // Render
     glutDisplayFunc(renderScene);
 
     //enter GLUT event processing cycle
@@ -150,6 +230,7 @@ void renderScene(void)
     //Clear all pixels
     glClear(GL_COLOR_BUFFER_BIT);
     
+    /*
     viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     MVPMat = projMat * viewMat * modelMat;
     glUniformMatrix4fv(mvpMatID, 1, false, &MVPMat[0][0]);
@@ -161,6 +242,9 @@ void renderScene(void)
             glDrawArrays(GL_PATCHES, i, 4);
         }
     }
+     */
+    
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glutSwapBuffers();
 }
@@ -277,9 +361,9 @@ void init()
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     
     // Mouse, Keyboard input
-    glutMotionFunc(mouseDragged);
-    glutMouseFunc(mousePressed);
-    glutKeyboardFunc(keyboardPressed);
+//    glutMotionFunc(mouseDragged);
+//    glutMouseFunc(mousePressed);
+//    glutKeyboardFunc(keyboardPressed);
 }
 
 void mouseDragged(int x, int y)

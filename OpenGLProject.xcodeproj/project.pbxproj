@@ -25,6 +25,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		E2071D062AD2381300E46712 /* stb_image.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = stb_image.h; sourceTree = "<group>"; };
+		E2071D082AD2397800E46712 /* container.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = container.jpg; sourceTree = "<group>"; };
 		E25ABC8C2ACFAB110028DDDC /* glm */ = {isa = PBXFileReference; lastKnownFileType = folder; path = glm; sourceTree = "<group>"; };
 		E2E280AD2ACEA816006AB8AC /* OpenGLProject */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = OpenGLProject; sourceTree = BUILT_PRODUCTS_DIR; };
 		E2E280B02ACEA816006AB8AC /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
@@ -70,6 +72,8 @@
 		E2E280AF2ACEA816006AB8AC /* OpenGLProject */ = {
 			isa = PBXGroup;
 			children = (
+				E2071D082AD2397800E46712 /* container.jpg */,
+				E2071D062AD2381300E46712 /* stb_image.h */,
 				E25ABC8C2ACFAB110028DDDC /* glm */,
 				E2E280BF2ACEAA74006AB8AC /* FragmentShader.txt */,
 				E2E280C02ACEAA74006AB8AC /* GeometryShader.txt */,
