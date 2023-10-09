@@ -128,6 +128,13 @@ int main(int argc, char **argv)
     //call initization function
     init();
 
+    programID = LoadShaders("VertexShader.txt",     true,
+                            "TessControlShader.txt",false,
+                            "TessEvalShader.txt",   false,
+                            "GeometryShader.txt",   false,
+                            "FragmentShader.txt",   true);
+    glUseProgram(programID);
+    
     GLuint VAO;
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
@@ -136,21 +143,50 @@ int main(int argc, char **argv)
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     
-    programID = LoadShaders("VertexShader.txt",     true,
-                            "TessControlShader.txt",false,
-                            "TessEvalShader.txt",   false,
-                            "GeometryShader.txt",   false,
-                            "FragmentShader.txt",   true);
-    glUseProgram(programID);
-
+    
     float vertices[] = {
          // 위치                // 텍스처 좌표
-        -0.5f,  0.5f, 0.0f,  0.0f, 1.0f,   // 좌측 상단
-         0.5f,  0.5f, 0.0f,  1.0f, 1.0f,   // 우측 상단
-        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f,   // 좌측 하단
-        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f,   // 좌측 하단
-         0.5f,  0.5f, 0.0f,  1.0f, 1.0f,   // 우측 상단
-         0.5f, -0.5f, 0.0f,  1.0f, 0.0f,   // 우측 하단
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,   // 좌측 상단 0
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   // 좌측 하단 1
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,   // 우측 상단 3
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   // 좌측 하단 1
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,   // 우측 하단 2
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,   // 우측 상단 3
+ 
+         0.5f,  0.5f,  0.5f,  0.0f, 1.0f,   // 우측 상단 3
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   // 우측 하단 2
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   // 우측 상단 7
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   // 우측 하단 2
+         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,   // 우측 하단 6
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   // 우측 상단 7
+        
+         0.5f,  0.5f, -0.5f,  0.0f, 1.0f,   // 우측 상단 7
+         0.5f, -0.5f, -0.5f,  0.0f, 0.0f,   // 우측 하단 6
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   // 좌측 상단 4
+         0.5f, -0.5f, -0.5f,  0.0f, 0.0f,   // 우측 하단 6
+        -0.5f, -0.5f, -0.5f,  1.0f, 0.0f,   // 좌측 하단 5
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   // 좌측 상단 4
+        
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,   // 좌측 상단 4
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,   // 좌측 하단 5
+        -0.5f,  0.5f,  0.5f,  1.0f, 1.0f,   // 좌측 상단 0
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,   // 좌측 하단 5
+        -0.5f, -0.5f,  0.5f,  1.0f, 0.0f,   // 좌측 하단 1
+        -0.5f,  0.5f,  0.5f,  1.0f, 1.0f,   // 좌측 상단 0
+        
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,   // 좌측 상단 4
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,   // 좌측 상단 0
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   // 우측 상단 7
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,   // 좌측 상단 0
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,   // 우측 상단 3
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   // 우측 상단 7
+        
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,   // 우측 하단 6
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   // 우측 하단 2
+        -0.5f, -0.5f, -0.5f,  1.0f, 1.0f,   // 좌측 하단 5
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   // 우측 하단 2
+        -0.5f, -0.5f,  0.5f,  1.0f, 0.0f,   // 좌측 하단 1
+        -0.5f, -0.5f, -0.5f,  1.0f, 1.0f,   // 좌측 하단 5
     };
     
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -257,7 +293,7 @@ void renderScene(void)
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture1);
     
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
 
     glutSwapBuffers();
 }
@@ -371,6 +407,7 @@ void init()
     //select the background color
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+    glEnable(GL_CULL_FACE);
     
     // Mouse, Keyboard input
     glutMotionFunc(mouseDragged);
