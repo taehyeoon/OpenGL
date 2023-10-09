@@ -221,10 +221,12 @@ int main(int argc, char **argv)
     viewMatID = glGetUniformLocation(programID, "u_viewMat");
     projectionMatID = glGetUniformLocation(programID, "u_projectionMat");
     
-    // Lighting
+    // Light color
     vec3 lightColor(1,0,1);
     glUniform3fv(glGetUniformLocation(programID, "u_lightColor"), 1, value_ptr(lightColor));
-    vec3 lightPos(1,1,2);
+    
+    // Light position
+    vec3 lightPos(1,1,1);
     glUniform3fv(glGetUniformLocation(programID, "u_lightPos"), 1, value_ptr(lightPos));
     
     // Menu
@@ -303,6 +305,9 @@ void renderScene(void)
     glUniformMatrix4fv(modelMatID, 1, false, value_ptr(modelMat));
     glUniformMatrix4fv(viewMatID, 1, false, value_ptr(viewMat));
     glUniformMatrix4fv(projectionMatID, 1, false, value_ptr(projMat));
+    
+    // Transfer camera position to fragment shader for calculate specular light
+    glUniform3fv(glGetUniformLocation(programID, "u_viewPos"), 1, value_ptr(cameraPos));
     
     // Texture kernel data
     glUniformMatrix3fv(glGetUniformLocation(programID, "u_kernel"), 1, false, value_ptr(kernel));
