@@ -1,3 +1,6 @@
+#define STB_IMAGE_IMPLEMENTATION
+#define GL_SILENCE_DEPRECATION
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string>
@@ -7,17 +10,22 @@
 #include <list>
 #include <cmath>
 #include <random>
+#include "stb_image.h"
 
 #ifdef WINDOWS
 #include <GL/glew.h>
 #else
-#define GL_SILENCE_DEPRECATION
 #include <OpenGL/gl3.h>
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
 #endif
 #include <GLut/glut.h>
+
+
+
+
 
 using namespace std;
 using namespace glm;
@@ -28,8 +36,8 @@ const int SCREEN_HEIGHT = 540;
 
 // Camera
 const float CAMERA_SPEED = 0.05f;
-float yaw = -90.0f;
-float pitch = 0.0f;
+float yawValue = -90.0f;
+float pitchValue = 0.0f;
 vec3 cameraPos = vec3(0.0f ,0.0f ,3.0f);
 vec3 cameraFront = vec3(0.0f ,0.0f ,-1.0f);
 vec3 cameraUp = vec3(0.0f ,1.0f ,0.0f);
@@ -38,7 +46,7 @@ vec3 cameraUp = vec3(0.0f ,1.0f ,0.0f);
 GLint mvpMatID;
 mat4 modelMat = mat4(1.0f);
 mat4 viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-mat4 projMat = perspective(radians(45.0f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.1f, 100.0f);
+mat4 projMat = perspective(radians(45.0f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.0001f, 100.0f);
 mat4 MVPMat = projMat * viewMat * modelMat;
 
 // Mouse
@@ -60,11 +68,23 @@ const double PI = 3.1415926;
 const int VERTEX_SIZE = 3;
 const int COLOR_SIZE = 4;
 const int ONE_VERTEX_DATA_SIZE = VERTEX_SIZE + COLOR_SIZE;
+const int FPS = 120;
 
 // Program
 bool isLineDrawingStart = false;
 vector<vec2> controlPoints;
 GLuint programID;
+
+// Texture
+GLuint texture1;
+mat3 kernel = mat3(0,0,0,
+                   0,1,0,
+                   0,0,0);
+float kernelSum = 1.0f;
+bool isNegative = false;
+
+// keyBoard
+bool isWASDQE[6];
 
 // Graphic
 GLuint CreateShader(int shaderType, const char* file_path);
@@ -78,9 +98,13 @@ void renderScene(void);
 
 // Input
 void mouseDragged(int x, int y);
-void mousePressed(int btn, int state, int x, int y);
-void keyboardPressed(unsigned char key, int x, int y);
+void mouseDown(int btn, int state, int x, int y);
+void keyboardDown(unsigned char key, int x, int y);
+void keyboardUp(unsigned char key, int x, int y);
 vec2 normalizedPosByLeftTop(int x, int y);
+void doMenu(int value);
+void doTimer(int value);
+
 
 int main(int argc, char **argv)
 {
@@ -113,28 +137,96 @@ int main(int argc, char **argv)
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     
     programID = LoadShaders("VertexShader.txt",     true,
-                            "TessControlShader.txt",true,
-                            "TessEvalShader.txt",   true,
+                            "TessControlShader.txt",false,
+                            "TessEvalShader.txt",   false,
                             "GeometryShader.txt",   false,
                             "FragmentShader.txt",   true);
     glUseProgram(programID);
 
+    float vertices[] = {
+         // 위치                // 텍스처 좌표
+        -0.5f,  0.5f, 0.0f,  0.0f, 1.0f,   // 좌측 상단
+         0.5f,  0.5f, 0.0f,  1.0f, 1.0f,   // 우측 상단
+        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f,   // 좌측 하단
+        -0.5f, -0.5f, 0.0f,  0.0f, 0.0f,   // 좌측 하단
+         0.5f,  0.5f, 0.0f,  1.0f, 1.0f,   // 우측 상단
+         0.5f, -0.5f, 0.0f,  1.0f, 0.0f,   // 우측 하단
+    };
+    
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    
     // Position
     glVertexAttribPointer(0, 3,
-        GL_FLOAT, GL_FALSE,
-        3 * sizeof(float),
-        (void*)0);
+                          GL_FLOAT, GL_FALSE,
+                          5 * sizeof(float),
+                          (void*)0);
     glEnableVertexAttribArray(0);
-
-    // Patch data
-    glPatchParameteri(GL_PATCH_VERTICES, 4);
-
-    // Tessellation
-    tesselationID = glGetUniformLocation(programID, "u_tessellation");
+    
+    // Texture
+    glVertexAttribPointer(1, 2,
+                          GL_FLOAT, GL_FALSE,
+                          5 * sizeof(float),
+                          (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
     
     // Matrix
     mvpMatID = glGetUniformLocation(programID, "u_MVPMat");
     
+    // Menu
+    GLint subMenu = glutCreateMenu(doMenu);
+    glutAddMenuEntry("cross", 3);
+    glutAddMenuEntry("horizontal", 4);
+    glutAddMenuEntry("vertical", 5);
+
+    glutCreateMenu(doMenu);
+    glutAddMenuEntry("identity", 0);
+    glutAddMenuEntry("mean", 1);
+    glutAddMenuEntry("sharpen", 2);
+    glutAddMenuEntry("negative", -1);
+    
+    // Attach subMenu
+    glutAddSubMenu("edge", subMenu);
+    glutAttachMenu(GLUT_MIDDLE_BUTTON);
+    
+    
+    // Texture
+    glGenTextures(1, &texture1);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    
+    // 현재 바인딩된 텍스쳐 객체에 대해 wrapping, filtering 옵션 설정
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    
+    // 텍스쳐 로드 및 생성
+    int width, height, nrChannels;
+    stbi_set_flip_vertically_on_load(true);
+    
+    // Texture1
+    unsigned char* data = stbi_load("lenna.png", &width, &height, &nrChannels, 0);
+    if(data){
+        // 현재 바인딩된 텍스쳐 객체가 첨부된 텍스쳐 이미지를 가지게 됨
+        glTexImage2D(GL_TEXTURE_2D,             // 텍스쳐 타겟, GL_TEXURE_2D로 바인딩된 텍스쳐 객체에 텍스쳐를 생성한다는 의미
+                     0,                         // 생성하는 텍스쳐의 mipmap 레벨을 수동으로 지정하고 싶을 때 지정, 베이스 레벨은 0
+                     GL_RGBA,                    // 저장하고 싶은 텍스쳐가 가져야할 포멧 정보 전달, 여기서는 RGB값 정보만 가지고 있음
+                     width, height,             // 텍스쳐의 너비와 높이
+                     0,                         // boarder : 항상 0
+                     GL_RGB, GL_UNSIGNED_BYTE,  // 원본 이미지의 포멧과 데이터 타입
+                     data);                     // 실제 데이터
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }else{
+        cout << "Failed to load texture" << endl;
+    }
+    stbi_image_free(data);
+    
+    // Set uniform attribute id in fragment shader
+    glUniform1i(glGetUniformLocation(programID, "texture1"), 0);
+    
+    // Timer
+    glutTimerFunc(1000.0f / FPS, doTimer, 1);
+    
+    // Render
     glutDisplayFunc(renderScene);
 
     //enter GLUT event processing cycle
@@ -149,18 +241,23 @@ void renderScene(void)
 {
     //Clear all pixels
     glClear(GL_COLOR_BUFFER_BIT);
-    
+
+    // MVP Matrix
     viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     MVPMat = projMat * viewMat * modelMat;
-    glUniformMatrix4fv(mvpMatID, 1, false, &MVPMat[0][0]);
+    glUniformMatrix4fv(mvpMatID, 1, false, value_ptr(MVPMat));
     
-    glUniform1i(tesselationID, tessel);
+    // Texture kernel data
+    glUniformMatrix3fv(glGetUniformLocation(programID, "u_kernel"), 1, false, value_ptr(kernel));
+    glUniform1f(glGetUniformLocation(programID, "u_kernel_sum"), kernelSum);
     
-    if (isLineDrawingStart) {
-        for (int i = 0; i < controlPoints.size() - 3; i++) {
-            glDrawArrays(GL_PATCHES, i, 4);
-        }
-    }
+    // Texture negative data
+    glUniform1f(glGetUniformLocation(programID, "u_isNegative"), isNegative);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture1);
+    
+    glDrawArrays(GL_TRIANGLES, 0, 6);
 
     glutSwapBuffers();
 }
@@ -209,7 +306,6 @@ GLuint LoadShaders(const char* vertex_file_path,       bool isActiveV,
     GLuint TessEvalShaderID = 0;
     GLuint GeometryShaderID = 0;
     GLuint FragmentShaderID = 0;
-    
     
     //create the shaders
     if(isActiveV)
@@ -278,8 +374,9 @@ void init()
     
     // Mouse, Keyboard input
     glutMotionFunc(mouseDragged);
-    glutMouseFunc(mousePressed);
-    glutKeyboardFunc(keyboardPressed);
+    glutMouseFunc(mouseDown);
+    glutKeyboardFunc(keyboardDown);
+    glutKeyboardUpFunc(keyboardUp);
 }
 
 void mouseDragged(int x, int y)
@@ -297,8 +394,6 @@ void mouseDragged(int x, int y)
         return;
     }
  
-    cout << "Mouse drag : " << x << ", " << y << endl;
-
     float xoffset = x - lastMouseX;
     float yoffset = lastMouseY - y;
     lastMouseX = x;
@@ -307,30 +402,22 @@ void mouseDragged(int x, int y)
     xoffset *= MOUSE_SENSITIVITY;
     yoffset *= MOUSE_SENSITIVITY;
 
-    yaw += xoffset;
-    pitch += yoffset;
+    yawValue += xoffset;
+    pitchValue += yoffset;
 
-    if(pitch > 89.0f)
-    pitch = 89.0f;
-    if(pitch < -89.0f)
-    pitch = -89.0f;
+    if(pitchValue > 89.0f)
+        pitchValue = 89.0f;
+    if(pitchValue < -89.0f)
+        pitchValue = -89.0f;
 
     vec3 front;
-    front.x = cos(radians(yaw)) * cos(radians(pitch));
-    front.y = sin(radians(pitch));
-    front.z = sin(radians(yaw)) * cos(radians(pitch));
+    front.x = cos(radians(yawValue)) * cos(radians(pitchValue));
+    front.y = sin(radians(pitchValue));
+    front.z = sin(radians(yawValue)) * cos(radians(pitchValue));
     cameraFront = normalize(front);
-
-    cout << "pos : " << cameraPos.x << ", " << cameraPos.y << ", " << cameraPos.z << endl;
-    cout << "front : " << cameraFront.x << ", " << cameraFront.y << ", " << cameraFront.z << endl;
-    cout << "up : " << cameraUp.x << ", " << cameraUp.y << ", " << cameraUp.z << endl;
-    cout << endl;
-
-    glutPostRedisplay();
-
 }
 
-void mousePressed(int btn, int state, int x, int y)
+void mouseDown(int btn, int state, int x, int y)
 {
     // Right click up
     if(btn == GLUT_RIGHT_BUTTON && state == GLUT_UP){
@@ -345,56 +432,20 @@ void mousePressed(int btn, int state, int x, int y)
     
     // Left click down
     if (btn == GLUT_LEFT_BUTTON && state == GLUT_DOWN) {
-        cout << "mouse clicked" << endl;
+        cout << "left click down" << endl;
 
         // If left click is continue, you can't move camera view
         isLeftClicking = true;
-
-        // Normalize clicked position to range[-1,1]
-        vec2 normalizedPos = normalizedPosByLeftTop(x, y);
-        
-        // Add control point
-        controlPoints.push_back(normalizedPos);
-        cout << "Add control point" << endl;
-
-        // show current control points
-        for (unsigned int i = 0; i < controlPoints.size(); i++) {
-            cout << "(" << controlPoints[i].x << " , " << controlPoints[i].y << ")" << endl;
-        }
-        cout << endl;
-
-        // Transfer data from cpu to gpu
-        if (controlPoints.size() >= 4) {
-            isLineDrawingStart = true;
-
-            float* datas = new float[(controlPoints.size() + 1) * VERTEX_SIZE];
-            datas[controlPoints.size() * VERTEX_SIZE] = '\0';
-            datas[controlPoints.size() * VERTEX_SIZE + 1] = '\0';
-            datas[controlPoints.size() * VERTEX_SIZE + 2] = '\0';
-
-            for (unsigned int i = 0; i < controlPoints.size(); i++) {
-                datas[3 * i] = controlPoints.at(i).x;
-                datas[3 * i + 1] = controlPoints.at(i).y;
-                datas[3 * i + 2] = 0;
-            }
-
-            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * controlPoints.size() * VERTEX_SIZE, datas, GL_STATIC_DRAW);
-            delete[] datas;
-            
-            glutPostRedisplay();
-        }
     }
 }
 
-void keyboardPressed(unsigned char key, int x, int y)
+void keyboardDown(unsigned char key, int x, int y)
 {
     // Terminate program
     if (key == 27){
         cout << "exit" << endl;
         exit(0);
     }
-
-    cout << "key pressed : ";
 
     /// w : move forward
     /// a : move left
@@ -408,55 +459,44 @@ void keyboardPressed(unsigned char key, int x, int y)
     /// k : decrease tessellation level
     switch (key)
     {
-        case 'w':
-            cout << "w key" << endl;
-            cameraPos += cameraFront * CAMERA_SPEED;
-            break;
-
-        case 'a':
-            cout << "a key" << endl;
-            cameraPos -= normalize(cross(cameraFront, cameraUp)) * CAMERA_SPEED;
-            break;
-
-        case 's':
-            cout << "s key" << endl;
-            cameraPos -= cameraFront * CAMERA_SPEED;
-            break;
-
-        case 'd':
-            cout << "d key" << endl;
-            cameraPos += normalize(cross(cameraFront, cameraUp)) * CAMERA_SPEED;
-            break;
-
-        case 'q':
-            cout << "q key"<< endl;
-            cameraPos -= normalize(cameraUp) * CAMERA_SPEED;
-            break;
-            
-        case 'e':
-            cout << "e key" << endl;
-            cameraPos += normalize(cameraUp) * CAMERA_SPEED;
-            break;
-
+        case 'w': isWASDQE[0] = true; break;
+        case 'a': isWASDQE[1] = true; break;
+        case 's': isWASDQE[2] = true; break;
+        case 'd': isWASDQE[3] = true; break;
+        case 'q': isWASDQE[4] = true; break;
+        case 'e': isWASDQE[5] = true; break;
         case 'i':
             cout << "i key" << endl;
             tessel += TESSEL_DELATA;
             if (tessel > TESSEL_MAX) tessel = TESSEL_MAX;
+            cout << "Current Tessellation : " << tessel << endl << endl;
             break;
             
         case 'k':
             cout << "k key" << endl;
             tessel -= TESSEL_DELATA;
             if (tessel < TESSEL_MIN) tessel = TESSEL_MIN;
+            cout << "Current Tessellation : " << tessel << endl << endl;
             break;
             
         default:
             break;
     }
-    
-    cout << "Current Tessellation : " << tessel << endl << endl;
+}
 
-    glutPostRedisplay();
+void keyboardUp(unsigned char key, int x, int y)
+{
+    switch (key) {
+        case 'w': isWASDQE[0] = false; break;
+        case 'a': isWASDQE[1] = false; break;
+        case 's': isWASDQE[2] = false; break;
+        case 'd': isWASDQE[3] = false; break;
+        case 'q': isWASDQE[4] = false; break;
+        case 'e': isWASDQE[5] = false; break;
+            
+        default:
+            break;
+    }
 }
 
 vec2 normalizedPosByLeftTop(int x, int y)
@@ -468,4 +508,82 @@ vec2 normalizedPosByLeftTop(int x, int y)
     cout << "Normalize : (" << x << " , " << y << ") -> ("
                         << result.x << " , " << result.y << ")" << endl;
     return result;
+}
+
+void doMenu(int value){
+    switch (value) {
+        case 0:
+            // Identity
+            kernel = mat3(0,0,0,
+                          0,1,0,
+                          0,0,0);
+            break;
+        
+            
+        case 1:
+            // Mean
+            kernel = mat3(1,1,1,
+                          1,1,1,
+                          1,1,1);
+            break;
+            
+        case 2:
+            // Sharpen
+            kernel = mat3(0,-1,0,
+                          -1,5,-1,
+                          0,-1,0);
+            break;
+
+        case 3:
+            // Cross
+            kernel = mat3(-1,-1,-1,
+                          -1,8,-1,
+                          -1,-1,-1);
+            break;
+
+        case 4:
+            // Horizontal
+            kernel = mat3(1,0,-1,
+                          2,0,-2,
+                          1,0,-1);
+            break;
+
+        case 5:
+            // Vertical
+            kernel = mat3(1,2,1,
+                          0,0,0,
+                          -1,-2,-1);
+            break;
+
+        case -1:
+            isNegative = !isNegative;
+            
+        default:
+            break;
+    }
+    
+    kernelSum = 0;
+    for(int i = 0; i< 3; i++){
+        for(int j = 0; j<3; j++){
+            kernelSum += kernel[i][j];
+        }
+    }
+    
+    // Prevent kernel sum is zero
+    kernelSum = (kernelSum <= 0) ? 1 : kernelSum;
+    
+    glutPostRedisplay();
+}
+
+void doTimer(int value){
+    
+    if(isWASDQE[0]) cameraPos += cameraFront * CAMERA_SPEED; // w
+    if(isWASDQE[1]) cameraPos -= normalize(cross(cameraFront, cameraUp)) * CAMERA_SPEED; // a
+    if(isWASDQE[2]) cameraPos -= cameraFront * CAMERA_SPEED; // s
+    if(isWASDQE[3]) cameraPos += normalize(cross(cameraFront, cameraUp)) * CAMERA_SPEED; // d
+    if(isWASDQE[4]) cameraPos -= normalize(cameraUp) * CAMERA_SPEED; // q
+    if(isWASDQE[5]) cameraPos += normalize(cameraUp) * CAMERA_SPEED; // e
+    
+    glutPostRedisplay();
+    glutTimerFunc(1000.0/FPS, doTimer, 1);
 }
