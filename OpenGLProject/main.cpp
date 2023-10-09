@@ -44,6 +44,9 @@ vec3 cameraUp = vec3(0.0f ,1.0f ,0.0f);
 
 // Matrix
 GLint mvpMatID;
+GLint modelMatID;
+GLint viewMatID;
+GLint projectionMatID;
 mat4 modelMat = mat4(1.0f);
 mat4 viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 mat4 projMat = perspective(radians(45.0f), (float)SCREEN_WIDTH/(float)SCREEN_HEIGHT, 0.0001f, 100.0f);
@@ -145,48 +148,48 @@ int main(int argc, char **argv)
     
     
     float vertices[] = {
-         // 위치                // 텍스처 좌표
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,   // 좌측 상단 0
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   // 좌측 하단 1
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,   // 우측 상단 3
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   // 좌측 하단 1
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,   // 우측 하단 2
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,   // 우측 상단 3
+         // 위치               // 텍스처 좌표  // 노말 벡터
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,  0.0f, 0.0f, 1.0f,  // 좌측 상단 0 // 앞면
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f, 0.0f, 1.0f,  // 좌측 하단 1
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  0.0f, 0.0f, 1.0f,  // 우측 상단 3
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f, 0.0f, 1.0f,  // 좌측 하단 1
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0.0f, 0.0f, 1.0f,  // 우측 하단 2
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  0.0f, 0.0f, 1.0f,  // 우측 상단 3
  
-         0.5f,  0.5f,  0.5f,  0.0f, 1.0f,   // 우측 상단 3
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   // 우측 하단 2
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   // 우측 상단 7
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   // 우측 하단 2
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,   // 우측 하단 6
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   // 우측 상단 7
+         0.5f,  0.5f,  0.5f,  0.0f, 1.0f,  1.0f, 0.0f, 0.0f, // 우측 상단 3 // 우측
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  1.0f, 0.0f, 0.0f, // 우측 하단 2
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  1.0f, 0.0f, 0.0f, // 우측 상단 7
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  1.0f, 0.0f, 0.0f, // 우측 하단 2
+         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,  1.0f, 0.0f, 0.0f, // 우측 하단 6
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  1.0f, 0.0f, 0.0f, // 우측 상단 7
         
-         0.5f,  0.5f, -0.5f,  0.0f, 1.0f,   // 우측 상단 7
-         0.5f, -0.5f, -0.5f,  0.0f, 0.0f,   // 우측 하단 6
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   // 좌측 상단 4
-         0.5f, -0.5f, -0.5f,  0.0f, 0.0f,   // 우측 하단 6
-        -0.5f, -0.5f, -0.5f,  1.0f, 0.0f,   // 좌측 하단 5
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   // 좌측 상단 4
+         0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f, 0.0f, -1.0f, // 우측 상단 7 // 뒷면
+         0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  0.0f, 0.0f, -1.0f, // 우측 하단 6
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0.0f, 0.0f, -1.0f, // 좌측 상단 4
+         0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  0.0f, 0.0f, -1.0f, // 우측 하단 6
+        -0.5f, -0.5f, -0.5f,  1.0f, 0.0f,  0.0f, 0.0f, -1.0f, // 좌측 하단 5
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0.0f, 0.0f, -1.0f, // 좌측 상단 4
         
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,   // 좌측 상단 4
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,   // 좌측 하단 5
-        -0.5f,  0.5f,  0.5f,  1.0f, 1.0f,   // 좌측 상단 0
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,   // 좌측 하단 5
-        -0.5f, -0.5f,  0.5f,  1.0f, 0.0f,   // 좌측 하단 1
-        -0.5f,  0.5f,  0.5f,  1.0f, 1.0f,   // 좌측 상단 0
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  -1.0f, 0.0f, 0.0f, // 좌측 상단 4 // 죄측
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  -1.0f, 0.0f, 0.0f, // 좌측 하단 5
+        -0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  -1.0f, 0.0f, 0.0f, // 좌측 상단 0
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,  -1.0f, 0.0f, 0.0f, // 좌측 하단 5
+        -0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  -1.0f, 0.0f, 0.0f, // 좌측 하단 1
+        -0.5f,  0.5f,  0.5f,  1.0f, 1.0f,  -1.0f, 0.0f, 0.0f, // 좌측 상단 0
         
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,   // 좌측 상단 4
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,   // 좌측 상단 0
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   // 우측 상단 7
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,   // 좌측 상단 0
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,   // 우측 상단 3
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,   // 우측 상단 7
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,  0.0f, 1.0f, 0.0f, // 좌측 상단 4 // 윗면
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,  0.0f, 1.0f, 0.0f, // 좌측 상단 0
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0.0f, 1.0f, 0.0f, // 우측 상단 7
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,  0.0f, 1.0f, 0.0f, // 좌측 상단 0
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,  0.0f, 1.0f, 0.0f, // 우측 상단 3
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,  0.0f, 1.0f, 0.0f, // 우측 상단 7
         
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,   // 우측 하단 6
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   // 우측 하단 2
-        -0.5f, -0.5f, -0.5f,  1.0f, 1.0f,   // 좌측 하단 5
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,   // 우측 하단 2
-        -0.5f, -0.5f,  0.5f,  1.0f, 0.0f,   // 좌측 하단 1
-        -0.5f, -0.5f, -0.5f,  1.0f, 1.0f,   // 좌측 하단 5
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,  0.0f, -1.0f, 0.0f, // 우측 하단 6 // 아랫면
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f, -1.0f, 0.0f, // 우측 하단 2
+        -0.5f, -0.5f, -0.5f,  1.0f, 1.0f,  0.0f, -1.0f, 0.0f, // 좌측 하단 5
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,  0.0f, -1.0f, 0.0f, // 우측 하단 2
+        -0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0.0f, -1.0f, 0.0f, // 좌측 하단 1
+        -0.5f, -0.5f, -0.5f,  1.0f, 1.0f,  0.0f, -1.0f, 0.0f, // 좌측 하단 5
     };
     
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -194,19 +197,35 @@ int main(int argc, char **argv)
     // Position
     glVertexAttribPointer(0, 3,
                           GL_FLOAT, GL_FALSE,
-                          5 * sizeof(float),
+                          8 * sizeof(float),
                           (void*)0);
     glEnableVertexAttribArray(0);
     
     // Texture
     glVertexAttribPointer(1, 2,
                           GL_FLOAT, GL_FALSE,
-                          5 * sizeof(float),
+                          8 * sizeof(float),
                           (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+
+    // Normal
+    glVertexAttribPointer(2, 3,
+                          GL_FLOAT, GL_FALSE,
+                          8 * sizeof(float),
+                          (void*)(5 * sizeof(float)));
+    glEnableVertexAttribArray(2);
     
     // Matrix
-    mvpMatID = glGetUniformLocation(programID, "u_MVPMat");
+//    mvpMatID = glGetUniformLocation(programID, "u_MVPMat");
+    modelMatID = glGetUniformLocation(programID, "u_modelMat");
+    viewMatID = glGetUniformLocation(programID, "u_viewMat");
+    projectionMatID = glGetUniformLocation(programID, "u_projectionMat");
+    
+    // Lighting
+    vec3 lightColor(1,0,1);
+    glUniform3fv(glGetUniformLocation(programID, "u_lightColor"), 1, value_ptr(lightColor));
+    vec3 lightPos(1,1,2);
+    glUniform3fv(glGetUniformLocation(programID, "u_lightPos"), 1, value_ptr(lightPos));
     
     // Menu
     GLint subMenu = glutCreateMenu(doMenu);
@@ -281,7 +300,9 @@ void renderScene(void)
     // MVP Matrix
     viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     MVPMat = projMat * viewMat * modelMat;
-    glUniformMatrix4fv(mvpMatID, 1, false, value_ptr(MVPMat));
+    glUniformMatrix4fv(modelMatID, 1, false, value_ptr(modelMat));
+    glUniformMatrix4fv(viewMatID, 1, false, value_ptr(viewMat));
+    glUniformMatrix4fv(projectionMatID, 1, false, value_ptr(projMat));
     
     // Texture kernel data
     glUniformMatrix3fv(glGetUniformLocation(programID, "u_kernel"), 1, false, value_ptr(kernel));

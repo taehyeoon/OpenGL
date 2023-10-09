@@ -2,13 +2,21 @@
 
 layout(location = 0) in vec3 inpos;
 layout(location = 1) in vec2 inTexCoord;
+layout(location = 2) in vec3 inNormal;
 
 out vec2 texCoord;
+out vec3 normal;
+out vec3 fragPos;
 
-uniform mat4 u_MVPMat;
+// uniform mat4 u_MVPMat;
+uniform mat4 u_modelMat;
+uniform mat4 u_viewMat;
+uniform mat4 u_projectionMat;
 
 void main()
 {	
-	gl_Position = u_MVPMat * vec4(inpos, 1);
+	gl_Position = u_projectionMat * u_viewMat * u_modelMat * vec4(inpos, 1);
     texCoord = inTexCoord;
+    normal = inNormal;
+    fragPos = vec3(u_modelMat * vec4(inpos, 1.0));
 }
