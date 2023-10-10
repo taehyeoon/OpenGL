@@ -40,7 +40,7 @@ void main()
                     coord_l_d + coord_c_d + coord_r_d) / u_kernel_sum;
 
     // Set cube color red
-    objectColor = vec4(1,0,0,1);
+    // objectColor = vec4(1,0,0,1);
     
     // Ambient
     float ambientStrength = 0.1;

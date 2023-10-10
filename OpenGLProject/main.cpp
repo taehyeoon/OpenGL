@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 #ifdef WINDOWS
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
 #else
-    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_DOUBLE | GLUT_RGBA);
+    glutInitDisplayMode(GLUT_3_2_CORE_PROFILE | GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH);
 #endif
     
     //These two functions are used to define the position and size of the window.
@@ -191,6 +191,7 @@ int main(int argc, char **argv)
         -0.5f, -0.5f,  0.5f,  1.0f, 0.0f,  0.0f, -1.0f, 0.0f, // 좌측 하단 1
         -0.5f, -0.5f, -0.5f,  1.0f, 1.0f,  0.0f, -1.0f, 0.0f, // 좌측 하단 5
     };
+
     
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
     
@@ -297,7 +298,7 @@ int main(int argc, char **argv)
 void renderScene(void)
 {
     //Clear all pixels
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // MVP Matrix
     viewMat = lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
@@ -318,9 +319,23 @@ void renderScene(void)
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture1);
+
     
+    modelMat = mat4(1.0);
+    glUniformMatrix4fv(modelMatID, 1, false, value_ptr(modelMat));
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
+    modelMat = translate(mat4(1.0), vec3(2,0,0));
+    glUniformMatrix4fv(modelMatID, 1, false, value_ptr(modelMat));
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    
+    modelMat = translate(mat4(1.0), vec3(4,0,0));
+    glUniformMatrix4fv(modelMatID, 1, false, value_ptr(modelMat));
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    modelMat = translate(mat4(1.0), vec3(6,0,0));
+    glUniformMatrix4fv(modelMatID, 1, false, value_ptr(modelMat));
+    glDrawArrays(GL_TRIANGLES, 0, 36);
     glutSwapBuffers();
 }
 
@@ -434,6 +449,7 @@ void init()
     glClearColor(1.0, 1.0, 1.0, 1.0);
     glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
     glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
     
     // Mouse, Keyboard input
     glutMotionFunc(mouseDragged);
